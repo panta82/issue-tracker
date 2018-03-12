@@ -1,0 +1,20 @@
+{
+  "name": "issue-tracker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/panta82/issue-tracker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/panta82/issue-tracker/issues"
+  },
+  "homepage": "https://github.com/panta82/issue-tracker#readme"
+}
