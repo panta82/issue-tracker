@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/panta82/issue-tracker/issues"
   },
-  "homepage": "https://github.com/panta82/issue-tracker#readme"
+  "homepage": "https://github.com/panta82/issue-tracker#readme",
+  "dependencies": {
+    "lodash": "^4.17.5"
+  }
 }
