@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 
 const {createUserModel} = require('./entities/users');
 
-class AppOptions {
+class AppSettings {
 	constructor(source) {
 		this.Mongo = {
 			/**
@@ -16,10 +16,10 @@ class AppOptions {
 	}
 }
 
-function App(options) {
+function App(settings) {
 	const thisApp = this;
 	
-	options = new AppOptions(options);
+	settings = new AppSettings(settings);
 	
 	/**
 	 * @type {Mongoose|*}
@@ -36,7 +36,7 @@ function App(options) {
 	});
 	
 	function start() {
-		return thisApp.mongoose.connect(options.Mongo.connection_string, {
+		return thisApp.mongoose.connect(settings.Mongo.connection_string, {
 			 // Not needed, since we have well established startup sequence
 			bufferCommands: false,
 			
