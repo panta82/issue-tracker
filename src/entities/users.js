@@ -40,5 +40,5 @@ module.exports = {
 	/**
 	 * @returns {function(new:User)|Model|Schema}
 	 */
-	createUserModel: function (mongoose) { return mongoose.model(USER_TYPE, userSchema); }
+	createUserModel: mongoose => mongoose.model(USER_TYPE, userSchema)
 };

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+const signals = require('enumconsts').signals;
+
 const {App} = require('../src/app');
 const {loadSettingsSync} = require('../src/settings');
 const {Environment} = require('../src/environment');
@@ -8,4 +10,17 @@ const env = Environment.fromProcess(process);
 const settings = loadSettingsSync(env);
 const app = new App(settings);
 
-app.start();
+app.start().then(
+	() => {
+		[signals.SIGINT, signals.SIGHUP].forEach(signal => {
+			process.on(signal, () => {
+				app.stop(`signal ${signal}`);
+			});
+		});
+	},
+	err => {
+		console.error(`FATAL ERROR DURING INITIALIZATION`);
+		console.error(err);
+		process.exit(1);
+	}
+);

@@ -6,6 +6,8 @@ const lodash = require('lodash');
 const libYaml = require('js-yaml');
 const commander = require('commander');
 
+const {LOGGER_LEVEL_VALUES} = require('./lib/logger');
+
 const BASE_NAME = 'settings';
 const ROOT_PATH = libPath.resolve(__dirname, '../');
 
@@ -46,9 +48,30 @@ function loadSettingsFromCommandLine(target, env) {
 		.description(env.description)
 		
 		.option('--repl', 'Start a REPL environment')
+		
+		.option('-v, --verbose',
+			'Increase logger verbosity (from INFO to VERBOSE to DEBUG)',
+			(_, total) => total + 1,
+			0
+		)
+		
+		.option('-q, --quiet',
+			'Decrease logger verbosity (from INFO to WARNING to ERROR)',
+			(_, total) => total - 1,
+			0
+		)
+		
 		.parse(env.argv);
 	
 	target.repl = args.repl;
+	
+	if (args.verbose !== 0 || args.quiet !== 0) {
+		// Load logger verbosity from command line. This will be built upon any value from settings.
+		target.Logger = target.Logger || {};
+		const baseLevel = target.Logger.level || LOGGER_LEVEL_VALUES.info;
+		target.Logger.level = baseLevel + (args.verbose || 0) - (args.quiet || 0);
+	}
+	
 	return target;
 }
 
@@ -58,6 +81,9 @@ function loadSettingsFromCommandLine(target, env) {
  * @returns {AppSettings}
  */
 function loadSettingsSync(env) {
+	
+	// Settings will be loaded here. Each successive call will mutate this object in sequence, overwriting previous
+	// values. So, the settings sources must be arranged by priority, from lowest to highest (CLI).
 	const settings = {};
 	
 	// Load base settings, eg. settings.yaml

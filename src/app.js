@@ -3,6 +3,7 @@ const libREPL = require('repl');
 const lodash = require('lodash');
 const mongoose = require('mongoose');
 
+const {Logger} = require('./lib/logger');
 const {createUserModel} = require('./entities/users');
 
 class AppSettings {
@@ -14,6 +15,14 @@ class AppSettings {
 		 */
 		this.repl = false;
 		
+		/**
+		 * @type {LoggerOptions}
+		 */
+		this.Logger = {};
+		
+		/**
+		 * Options for mongoose/mongodb driver
+		 */
 		this.Mongo = {
 			/**
 			 * Mongo connection string. See http://mongoosejs.com/docs/connections.html
@@ -25,27 +34,49 @@ class AppSettings {
 	}
 }
 
+/**
+ * Main service container for the app. It holds and manages all other services.
+ * @param {AppSettings} settings
+ */
 function App(settings) {
 	const thisApp = this;
 	
 	settings = new AppSettings(settings);
 	
-	/**
-	 * @type {Mongoose|*}
-	 */
-	this.mongoose = new mongoose.Mongoose();
-	
-	/**
-	 * @type {function(new:User)|Model}
-	 */
-	this.User = createUserModel(this.mongoose);
+	populateContainer();
 	
 	Object.assign(this, /** @lends App.prototype */ {
 		start,
 		stop
 	});
 	
+	/**
+	 * Create all models and services and attach them to app / service container. This is called during creation.
+	 */
+	function populateContainer() {
+		/**
+		 * @type {Logger}
+		 */
+		thisApp.logger = new Logger(settings.Logger);
+		
+		/**
+		 * @type {Mongoose|*}
+		 */
+		thisApp.mongoose = new mongoose.Mongoose();
+		
+		/**
+		 * @type {function(new:User)|Model}
+		 */
+		thisApp.User = createUserModel(thisApp.mongoose);
+	}
+	
+	/**
+	 * Start app. All services are initialized in appropriate order (App knows the correct order)
+	 * @return {Promise<any>}
+	 */
 	function start() {
+		this.logger.info(`Starting app`);
+		
 		return thisApp.mongoose
 			.connect(settings.Mongo.connection_string, {
 				 // Not needed, since we have well established startup sequence
@@ -55,6 +86,8 @@ function App(settings) {
 				autoIndex: false
 			})
 			.then(() => {
+				this.logger.info(`App has started`);
+				
 				if (!settings.repl) {
 					return;
 				}
@@ -68,13 +101,20 @@ function App(settings) {
 			});
 	}
 	
+	/**
+	 * Stop the app. Services are shut down.
+	 * @return {Promise<any>}
+	 */
 	function stop(reason) {
+		const reasonMsg = reason
+			? `Stopping app due to ${reason}`
+			: `Stopping app`;
+		thisApp.logger.info(reasonMsg);
+		
 		return thisApp.mongoose.disconnect()
 			.then(() => {
-				const reasonMsg = reason
-					? `Stopped due to ${reason}`
-					: `Stopped`;
-				console.log(reasonMsg);
+				
+				thisApp.logger.info(`App has been stopped`);
 			});
 	}
 }
