@@ -16,7 +16,6 @@ function reverseHash(hash) {
 	return result;
 }
 
-
 /**
  * Like inspect, only returns single line string. Useful for logging.
  */

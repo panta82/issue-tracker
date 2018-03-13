@@ -3,7 +3,8 @@ const libREPL = require('repl');
 const lodash = require('lodash');
 const mongoose = require('mongoose');
 
-const {Logger} = require('./lib/logger');
+const {Logger} = require('./services/logger');
+const {Server} = require('./services/server');
 const {createUserModel} = require('./entities/users');
 
 class AppSettings {
@@ -19,6 +20,11 @@ class AppSettings {
 		 * @type {LoggerOptions}
 		 */
 		this.Logger = {};
+		
+		/**
+		 * @type {ServerOptions}
+		 */
+		this.Server = {};
 		
 		/**
 		 * Options for mongoose/mongodb driver
@@ -43,7 +49,7 @@ function App(settings) {
 	
 	settings = new AppSettings(settings);
 	
-	populateContainer();
+	initContainer();
 	
 	Object.assign(this, /** @lends App.prototype */ {
 		start,
@@ -53,7 +59,7 @@ function App(settings) {
 	/**
 	 * Create all models and services and attach them to app / service container. This is called during creation.
 	 */
-	function populateContainer() {
+	function initContainer() {
 		/**
 		 * @type {Logger}
 		 */
@@ -68,6 +74,11 @@ function App(settings) {
 		 * @type {function(new:User)|Model}
 		 */
 		thisApp.User = createUserModel(thisApp.mongoose);
+		
+		/**
+		 * @type {Server}
+		 */
+		thisApp.server = new Server(settings.Server, thisApp);
 	}
 	
 	/**
@@ -84,6 +95,9 @@ function App(settings) {
 				
 				// We will dogfood the same code for creating production indexes instead of this
 				autoIndex: false
+			})
+			.then(() => {
+				return thisApp.server.start();
 			})
 			.then(() => {
 				this.logger.info(`App has started`);
@@ -111,9 +125,11 @@ function App(settings) {
 			: `Stopping app`;
 		thisApp.logger.info(reasonMsg);
 		
-		return thisApp.mongoose.disconnect()
+		return thisApp.server.stop()
 			.then(() => {
-				
+				return thisApp.mongoose.disconnect();
+			})
+			.then(() => {
 				thisApp.logger.info(`App has been stopped`);
 			});
 	}

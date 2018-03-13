@@ -31,8 +31,6 @@ const userSchema = mongoose.Schema({
 
 module.exports = {
 	USER_TYPE,
-	
-	
 	USER,
 	
 	userSchema,

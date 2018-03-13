@@ -6,7 +6,8 @@ const lodash = require('lodash');
 const libYaml = require('js-yaml');
 const commander = require('commander');
 
-const {LOGGER_LEVEL_VALUES} = require('./lib/logger');
+const {LOGGER_LEVEL_VALUES} = require('./services/logger');
+const {DEFAULT_PORT} = require('./services/server');
 
 const BASE_NAME = 'settings';
 const ROOT_PATH = libPath.resolve(__dirname, '../');
@@ -61,6 +62,8 @@ function loadSettingsFromCommandLine(target, env) {
 			0
 		)
 		
+		.option('-p, --port <port>', `Set API port (defaults to ${DEFAULT_PORT})`)
+		
 		.parse(env.argv);
 	
 	target.repl = args.repl;
@@ -70,6 +73,11 @@ function loadSettingsFromCommandLine(target, env) {
 		target.Logger = target.Logger || {};
 		const baseLevel = target.Logger.level || LOGGER_LEVEL_VALUES.info;
 		target.Logger.level = baseLevel + (args.verbose || 0) - (args.quiet || 0);
+	}
+	
+	if (args.port) {
+		target.Server = target.Server || {};
+		target.Server.port = Number(args.port) || DEFAULT_PORT;
 	}
 	
 	return target;

@@ -18,11 +18,16 @@
   },
   "homepage": "https://github.com/panta82/issue-tracker#readme",
   "dependencies": {
+    "body-parser": "^1.18.2",
     "commander": "^2.15.0",
+    "cors": "^2.8.4",
     "enumconsts": "^1.0.0",
+    "express": "^4.16.3",
     "js-yaml": "^3.11.0",
     "lodash": "^4.17.5",
     "mongoose": "^5.0.9",
+    "passport": "^0.4.0",
+    "passport-jwt": "^4.0.0",
     "winston": "^2.4.1"
   },
   "devDependencies": {

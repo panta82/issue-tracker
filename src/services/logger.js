@@ -1,7 +1,7 @@
 const libWinston = require('winston');
 const lodash = require('lodash');
 
-const {reverseHash, inspectCompact} = require("./tools");
+const {reverseHash, inspectCompact} = require("../lib/tools");
 
 const LOGGER_LEVELS = {
 	error: 'error',
@@ -93,6 +93,12 @@ function Logger(options) {
 		trace2
 	});
 	
+	/**
+	 * Log message at a certain level. All subsequent arguments are passed into winston
+	 * @param level
+	 * @param message
+	 * @param args
+	 */
 	function log(level, message, ...args) {
 		if (LOGGER_LEVEL_VALUES[level] > options.level) {
 			return;
@@ -125,6 +131,7 @@ function Logger(options) {
 	}
 	
 	/**
+	 * Create a localized version of logger with prefix
 	 * @param {string} prefix
 	 * @return {Logger}
 	 */
@@ -138,6 +145,10 @@ function Logger(options) {
 		return new Logger(cloneOptions);
 	}
 	
+	/**
+	 * You can use this function as a quick error callback. Error will be logged if it exists.
+	 * @param err
+	 */
 	function errorHandler(err) {
 		if (!err) {
 			return;
@@ -164,10 +175,20 @@ function Logger(options) {
 		return log(level, '[' + prefix + '] ' + fn + argsStr);
 	}
 	
+	/**
+	 * Trace important function calls. Good practice is to call this from data mutating functions
+	 * @param fn
+	 * @param args
+	 */
 	function trace1(fn, args) {
 		return doTrace(fn, args, options.trace1_level, 'TRACE1');
 	}
 	
+	/**
+	 * Trace less important function calls. Good practice is to call this from data reading functions
+	 * @param fn
+	 * @param args
+	 */
 	function trace2(fn, args) {
 		return doTrace(fn, args, options.trace2_level, 'TRACE2');
 	}
