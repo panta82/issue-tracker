@@ -4,6 +4,7 @@ const libFs = require('fs');
 const errno = require('enumconsts').errno;
 const lodash = require('lodash');
 const libYaml = require('js-yaml');
+const commander = require('commander');
 
 const BASE_NAME = 'settings';
 const ROOT_PATH = libPath.resolve(__dirname, '../');
@@ -35,26 +36,44 @@ function loadSettingsFromFileSync(target, filename, mandatory = true) {
 }
 
 /**
+ * Load settings from argv (command line arguments)
+ * @param {AppSettings} target
+ * @param {Environment} env
+ */
+function loadSettingsFromCommandLine(target, env) {
+	const args = commander
+		.version(env.version)
+		.description(env.description)
+		
+		.option('--repl', 'Start a REPL environment')
+		.parse(env.argv);
+	
+	target.repl = args.repl;
+	return target;
+}
+
+/**
  * Load settings from multiple source files.
- * @param environment Environment in which to operate. 'production', 'development' or 'test'
+ * @param {Environment} env Environment to load the settings from.
  * @returns {AppSettings}
  */
-function loadSettingsSync(environment) {
-	environment = environment || process.env.NODE_ENV || 'development';
-	
+function loadSettingsSync(env) {
 	const settings = {};
 	
 	// Load base settings, eg. settings.yaml
 	loadSettingsFromFileSync(settings, BASE_NAME + '.yaml');
 		
 	// Load environment based settings, eg. settings.production.yaml
-	loadSettingsFromFileSync(settings, BASE_NAME + '.' + environment + '.yaml');
+	loadSettingsFromFileSync(settings, BASE_NAME + '.' + env.node_env + '.yaml', false);
 	
 	// Load optional local settings, eg. settings.local.yaml
 	loadSettingsFromFileSync(settings, BASE_NAME + '.local.yaml', false);
 	
 	// Load environment-based local settings, eg. settings.test.local.yaml
-	loadSettingsFromFileSync(settings, BASE_NAME + '.' + environment + '.local.yaml', false);
+	loadSettingsFromFileSync(settings, BASE_NAME + '.' + env.node_env + '.local.yaml', false);
+	
+	// Load settings from argv
+	loadSettingsFromCommandLine(settings, env);
 	
 	return settings;
 }

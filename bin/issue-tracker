@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 
 const {App} = require('../src/app');
+const {loadSettingsSync} = require('../src/settings');
+const {Environment} = require('../src/environment');
 
-const app = new App();
+const env = Environment.fromProcess(process);
+const settings = loadSettingsSync(env);
+const app = new App(settings);
 
 app.start();
