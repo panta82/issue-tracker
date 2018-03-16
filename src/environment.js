@@ -26,18 +26,20 @@ class Environment {
 	}
 	
 	/**
-	 * Create instance of Environment from process
-	 * @param process Node's global process
+	 * Create instance of Environment from process and package.json
 	 * @return {Environment}
 	 */
-	static fromProcess(process = global.process) {
+	static loadSync() {
 		const result = new Environment();
 		
 		result.node_env = process.env.NODE_ENV || DEFAULT_NODE_ENV;
-		result.version = process.env.npm_package_version;
-		result.name = process.env.npm_package_name;
-		result.description = process.env.npm_package_description;
 		result.argv = process.argv;
+		
+		const packageInfo = require('../package');
+		
+		result.version = packageInfo.version;
+		result.name = packageInfo.name;
+		result.description = packageInfo.description;
 		
 		return result;
 	}

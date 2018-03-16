@@ -2,40 +2,17 @@ const lodash = require("lodash");
 const passport = require('passport');
 const passportJwt = require('passport-jwt');
 const libJwt = require('jsonwebtoken');
-
-const V = require('../lib/validation');
-const {dependencies} = require('../lib/tools');
-const API_PREFIX = require("./types").API_PREFIX;
-
-class User {
-	constructor(source) {
-		this.username = null;
-		this.password = null;
-		
-		Object.assign(this, source);
-	}
-}
-
-class JwtPayload {
-	constructor(username) {
-		this.username = username;
-	}
-}
+const Joi = require('joi');
 
 class AuthOptions {
 	constructor(source) {
-		/**
-		 * @type {Array<User>}
-		 */
-		this.default_users = [];
-		
 		/**
 		 * This should be something pretty unique, for 2-way encryption. Must be configured.
 		 * @type {string}
 		 */
 		this.secret = null;
 		
-		this.token_issuer = 'pantas.net/aggregader';
+		this.token_issuer = 'pantas.net/issue-tracker';
 		
 		lodash.merge(this, source);
 	}
@@ -48,16 +25,10 @@ class AuthOptions {
 function AuthManager(options, deps) {
 	options = new AuthOptions(options);
 	
-	deps = dependencies(deps, ['logger', 'server']);
-	
 	const log = deps.logger.prefixed('Auth');
 	
 	if (!options.secret) {
 		throw new Error(`You must configure AuthManager.secret in order to run. Best generate some random long string and keep it secure!`);
-	}
-	
-	if (!options.default_users.length) {
-		log.warn(`You don't have any default users configured. You can add them at AuthManager.default_users`);
 	}
 	
 	Object.assign(this, /** @lends AuthManager.prototype */ {
@@ -87,10 +58,13 @@ function AuthManager(options, deps) {
 		
 		deps.server.post(
 			API_PREFIX + '/login',
-			V.validator({
-				username: V.string().required(),
-				password: V.string().required()
-			}),
+			`Login user`,
+			{
+				body: {
+					username: V.string().required(),
+					password: V.string().required()
+				}
+			},
 			(req) => {
 				const user = getUserByUsername(req.data.username);
 				if (!user || user.password !== req.data.password) {
@@ -116,15 +90,17 @@ function AuthManager(options, deps) {
 			}
 		);
 	}
-	
-	/**
-	 * @param username
-	 * @returns {User}
-	 */
-	function getUserByUsername(username) {
-		return lodash.find(options.default_users, {username});
+}
+
+// *********************************************************************************************************************
+
+class JwtPayload {
+	constructor(username) {
+		this.username = username;
 	}
 }
+
+// *********************************************************************************************************************
 
 module.exports = {
 	AuthManager

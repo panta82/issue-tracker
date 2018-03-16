@@ -3,9 +3,13 @@ const libREPL = require('repl');
 const lodash = require('lodash');
 const mongoose = require('mongoose');
 
+const validation = require('./lib/validation');
+const {API_PREFIX} = require('./entities/consts');
 const {Logger} = require('./services/logger');
 const {Server} = require('./services/server');
 const {createUserModel} = require('./entities/users');
+
+const authController = require('./web/auth_controller');
 
 class AppSettings {
 	constructor(source) {
@@ -43,8 +47,9 @@ class AppSettings {
 /**
  * Main service container for the app. It holds and manages all other services.
  * @param {AppSettings} settings
+ * @param {Environment} env
  */
-function App(settings) {
+function App(settings, env) {
 	const thisApp = this;
 	
 	settings = new AppSettings(settings);
@@ -60,6 +65,9 @@ function App(settings) {
 	 * Create all models and services and attach them to app / service container. This is called during creation.
 	 */
 	function initContainer() {
+		/** @type {Root} */
+		thisApp.V = thisApp.validation = validation;
+		
 		/**
 		 * @type {Logger}
 		 */
@@ -78,7 +86,19 @@ function App(settings) {
 		/**
 		 * @type {Server}
 		 */
-		thisApp.server = new Server(settings.Server, thisApp);
+		thisApp.server = new Server({
+			...settings.Server,
+			api_docs: {
+				title: env.name,
+				version: env.version,
+				description: env.description,
+				base_path: API_PREFIX
+			}
+		}, thisApp);
+		
+		// Initialize controllers
+		
+		authController(thisApp);
 	}
 	
 	/**

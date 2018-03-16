@@ -6,9 +6,9 @@ const {App} = require('../src/app');
 const {loadSettingsSync} = require('../src/settings');
 const {Environment} = require('../src/environment');
 
-const env = Environment.fromProcess(process);
+const env = Environment.loadSync();
 const settings = loadSettingsSync(env);
-const app = new App(settings);
+const app = new App(settings, env);
 
 app.start().then(
 	() => {

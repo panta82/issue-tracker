@@ -2,9 +2,12 @@ const libHttp = require('http');
 const libPath = require('path');
 const {promisify} = require('util');
 
+const Joi = require('joi');
 const libExpress = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const joiToSwagger = require('joi-to-swagger');
 const lodash = require('lodash');
 
 const DEFAULT_PORT = 3000;
@@ -28,6 +31,32 @@ class ServerOptions {
 		this.stack_traces = true;
 		
 		/**
+		 * If true, server will auto-add validation middlewares based on provided endpoint definitions.
+		 * The validated object will become available under req.data
+		 * @type {boolean}
+		 */
+		this.enable_validation = true;
+		
+		/**
+		 * Serve API docs. Should be enabled in dev
+		 */
+		this.api_docs = /** @lends ServerOptionsApiDocs.prototype */ {
+			enabled: true,
+			endpoint: '/docs',
+			
+			// The following properties should probably be loaded from package
+			title: 'Server',
+			version: '1.0.0',
+			description: 'Server',
+			
+			// Miscellaneous swagger props
+			schemes: [
+				'http'
+			],
+			base_path: '/'
+		};
+		
+		/**
 		 * Handle letsencrypt verification
 		 * @type {{enabled: boolean, directory: string}}
 		 */
@@ -49,25 +78,28 @@ class ServerOptions {
  * 4. When app is shutting down, call stop()
  *
  * @param {ServerOptions} options
- * @param {App} app
+ * @param {App} deps
  * @constructor
  */
-function Server(options, app) {
+function Server(options, deps) {
 	const thisServer = this;
 	
 	options = new ServerOptions(options);
 	
-	const _log = app.logger.prefixed('Server');
+	const _log = deps.logger.prefixed('Server');
 	const _express = libExpress();
 	/** @type {http.Server|Server} */
 	let _server = null;
 	
+	/** @type Endpoint[] */
+	const _endpoints = [];
+	
 	Object.assign(this, /** @lends Server.prototype */ {
-		get: bindMethod('get'),
-		put: bindMethod('put'),
-		post: bindMethod('post'),
-		delete: bindMethod('delete'),
-		use: bindMethod('use'),
+		get: makeEndpointFnForMethod('get'),
+		put: makeEndpointFnForMethod('put'),
+		post: makeEndpointFnForMethod('post'),
+		delete: makeEndpointFnForMethod('delete'),
+		use: makeEndpointFnForMethod('use'),
 		
 		start,
 		stop
@@ -83,39 +115,40 @@ function Server(options, app) {
 		));
 	}
 	
-	function bindMethod(name) {
+	/**
+	 * @param method
+	 * @return {function([path], [description], endpoint: Endpoint, ...fn)}
+	 */
+	function makeEndpointFnForMethod(method) {
 		return function () {
-			_log.trace1(name, arguments);
-
-			const controllerFn = arguments[arguments.length - 1];
+			_log.trace1(method, arguments);
 			
-			if (name !== 'use' && lodash.isFunction(controllerFn) && controllerFn.length <= 1) {
-				// Add promise handler if function signature only takes a single argument
-				arguments[arguments.length - 1] = function promiseWrapper(req, res, next) {
-					let promise;
-					try {
-						promise = controllerFn(req);
-					}
-					catch(err) {
-						return next(err);
-					}
-
-					if (!(promise instanceof Promise)) {
-						return res.send(promise);
-					}
-
-					return promise.then(
-						result => {
-							res.send(result);
-						},
-						err => {
-							next(err);
-						}
-					);
-				};
+			if (method === 'use') {
+				// Use endpoints (middlewares mostly) don't need special handling
+				return _express[method].apply(_express, arguments);
 			}
+			
+			const endpoint = createEndpointFromArgs(method, arguments);
+			
+			if (options.enable_validation && endpoint.handlers.length) {
+				const validationSchema = Joi.object({
+					params: Joi.object(endpoint.params),
+					query: Joi.object(endpoint.query),
+					body: Joi.object(endpoint.body)
+				});
+				const validator = createValidationMiddleware(validationSchema);
+				endpoint.handlers.splice(-1, 0, validator);
+			}
+			
+			// Save endpoint data for later use
+			_endpoints.push(endpoint);
 
-			return _express[name].apply(_express, arguments);
+			// Pass the params along to express
+			if (endpoint.path) {
+				return _express[method].call(_express, endpoint.path, ...endpoint.handlers);
+			}
+			return _express[method].call(_express, ...endpoint.handlers);
+			
 		};
 	}
 
@@ -175,6 +208,13 @@ function Server(options, app) {
 		_log.info(`Starting server...`);
 		
 		return new Promise((resolve, reject) => {
+			const enableApiDocs = options.api_docs && options.api_docs.enabled;
+			
+			if (enableApiDocs) {
+				const swaggerDocument = createSwaggerDocument(_endpoints, options.api_docs);
+				thisServer.use(options.api_docs.endpoint, swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+			}
+			
 			thisServer.use(catchAll);
 			thisServer.use(errorHandler);
 			
@@ -186,6 +226,9 @@ function Server(options, app) {
 				_server.removeListener('error', reject);
 				
 				_log.info(`Server is listening on port ${options.port}`);
+				if (enableApiDocs) {
+					_log.info(`Documentation is available at ${options.api_docs.endpoint}`);
+				}
 				
 				resolve(options.port);
 			});
@@ -210,6 +253,211 @@ function Server(options, app) {
 		})
 	}
 }
+
+// *********************************************************************************************************************
+
+/**
+ * Create endpoint definition from loosely provided args.
+ * Also adds validation middleware, if enabled
+ * eg. server.get('/blah', 'Blah handler', {query: '...'}, () => {}, () => {})
+ * @param method
+ * @param args
+ * @return Endpoint
+ */
+function createEndpointFromArgs(method, args) {
+	const endpoint = new Endpoint();
+	const handlers = [];
+	for (let i = 0; i < args.length; i++) {
+		const arg = args[i];
+		if (handlers.length || lodash.isFunction(arg)) {
+			// Once we hit a function, we pack up everything else as handlers
+			handlers.push(arg);
+			continue;
+		}
+		
+		// String is treated as path or description
+		if (lodash.isString(arg)) {
+			if (endpoint.path === null) {
+				endpoint.path = arg;
+			}
+			else if (endpoint.description === null) {
+				endpoint.description = arg;
+			}
+			else {
+				throw new Error(`Unexpected string argument: ${arg}`);
+			}
+			continue;
+		}
+		
+		// Everything else is merged into the endpoint definition object
+		lodash.merge(endpoint, arg);
+	}
+	
+	endpoint.method = method;
+	
+	const handlerFn = handlers[handlers.length - 1];
+	if (lodash.isFunction(handlerFn) && handlerFn.length <= 1) {
+		// Add promise handler if function signature only takes a single argument (req)
+		handlers[handlers.length - 1] = makePromiseWrapper(handlerFn);
+	}
+	
+	endpoint.handlers = handlers;
+	
+	return endpoint;
+}
+
+/**
+ * Create a promise wrapper function for an express request handler.
+ * If your handler only takes req and returns the promise, this wrapper will take care of the rest
+ * @param handlerFn Your request handler
+ * @return {function(req, res, next)}
+ */
+function makePromiseWrapper(handlerFn) {
+	return function promiseWrapper(req, res, next) {
+		let promise;
+		try {
+			promise = handlerFn(req);
+		}
+		catch(err) {
+			return next(err);
+		}
+		
+		if (!(promise instanceof Promise)) {
+			return res.send(promise);
+		}
+		
+		return promise.then(
+			result => {
+				res.send(result);
+			},
+			err => {
+				next(err);
+			}
+		);
+	};
+}
+
+/**
+ * @param schema Joi object schema
+ * @return {validator}
+ */
+function createValidationMiddleware(schema) {
+	return function validator(req, res, next) {
+		const input = {
+			body: req.body,
+			query: lodash.mapKeys(req.query, toSnakeCase),
+			params: req.params
+		};
+		
+		const result = schema.validate(input, {
+			stripUnknown: true,
+			abortEarly: false
+		});
+		
+		if (result.error) {
+			return next(err);
+		}
+		
+		// Package everything to one level. body/query is implementation detail of API, it shouldn't reach business logic
+		req.data = {
+			...result.value.body,
+			...result.value.query,
+			...result.value.params
+		};
+		return next();
+		
+	};
+}
+
+function toSnakeCase(str) {
+	return str.replace(/[^a-zA-Z0-9$]/, '_');
+}
+
+/**
+ * Create swagger document from api settings and its collected endpoints
+ * @param {Endpoint[]} endpoints
+ * @param {ServerOptionsApiDocs} apiDocOptions
+ */
+function createSwaggerDocument(endpoints, apiDocOptions) {
+	const result = {
+		swagger: '2.0',
+		info: {
+			version: apiDocOptions.version,
+			title: apiDocOptions.title,
+			description: apiDocOptions.description,
+		},
+		schemes: apiDocOptions.schemes,
+		basePath: apiDocOptions.base_path,
+		paths: {},
+	};
+	
+	endpoints.forEach(endpoint => {
+		const doc = {
+			summary: endpoint.path,
+			description: endpoint.description || null,
+			parameters: []
+		};
+		
+		lodash.forEach(endpoint.params, (validator, key) => {
+			doc.parameters.push({
+				name: key,
+				in: 'path',
+				description: 'TODO',
+				
+				// TODO: Read from validator
+				// required: true
+			});
+		});
+		
+		lodash.forEach(endpoint.query, (validator, key) => {
+			doc.parameters.push({
+				name: key,
+				in: 'query',
+				description: 'TODO',
+				
+				// TODO: Read from validator
+				// required: true
+			});
+		});
+		
+		if (endpoint.body) {
+			doc.parameters.push({
+				in: 'body',
+				name: 'body',
+				schema: joiToSwagger(Joi.object(endpoint.body)).swagger
+			});
+		}
+		
+		
+		// Replace express-like path placeholders with swagger style. Eg. /:id/ to /{id}/
+		// TODO: This won't work for regex paths, revisit if it becomes a problem
+		const path = endpoint.path.replace(/:([a-zA-Z0-9_]+)/ig, '{$1}');
+		
+		result.paths[path] = result.paths[path] || {};
+		result.paths[path][endpoint.method] = doc;
+	});
+	
+	return result;
+}
+
+// *********************************************************************************************************************
+
+class Endpoint {
+	constructor(source) {
+		this.method = null;
+		this.path = null;
+		this.description = null;
+		this.params = null;
+		this.query = null;
+		this.body = null;
+		this.response = null;
+		this.handlers = [];
+		
+		lodash.assign(this, source);
+	}
+}
+
+// *********************************************************************************************************************
 
 module.exports = {
 	DEFAULT_PORT,
