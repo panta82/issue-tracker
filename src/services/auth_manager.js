@@ -4,7 +4,7 @@ const passportJwt = require('passport-jwt');
 const libJwt = require('jsonwebtoken');
 const Joi = require('joi');
 
-class AuthOptions {
+class AuthManagerOptions {
 	constructor(source) {
 		/**
 		 * This should be something pretty unique, for 2-way encryption. Must be configured.
@@ -19,24 +19,30 @@ class AuthOptions {
 }
 
 /**
- * @param {AuthOptions} options
+ * @param {AuthManagerOptions} options
  * @param {App} deps
  */
 function AuthManager(options, deps) {
-	options = new AuthOptions(options);
+	options = new AuthManagerOptions(options);
 	
 	const log = deps.logger.prefixed('Auth');
 	
 	if (!options.secret) {
-		throw new Error(`You must configure AuthManager.secret in order to run. Best generate some random long string and keep it secure!`);
+		throw new Error(`You must configure "Auth.secret" in order to initialize AuthManager. Best generate some random long string and keep it secure!`);
 	}
 	
 	Object.assign(this, /** @lends AuthManager.prototype */ {
 		init,
+		login,
 		middleware: passport.authenticate('jwt', {session: false})
 	});
 	
+	/**
+	 * Initializes passport strategies. This should be called during the construction phase
+ 	 */
 	function init() {
+		log.trace1(init);
+		
 		deps.server.use(passport.initialize());
 		
 		const strategyOpts = {
@@ -46,49 +52,49 @@ function AuthManager(options, deps) {
 		};
 		
 		const strategy = new passportJwt.Strategy(strategyOpts, (/** JwtPayload */ jwtPayload, next) => {
-			const user = getUserByUsername(jwtPayload.username);
-			if (!user) {
-				return next(null, false);
-			}
-			
-			return next(null, user);
+			return deps.userManager.getUserByUsername(jwtPayload.username).then(
+				user => {
+					if (!user) {
+						return next(null, false);
+					}
+					
+					return next(null, user);
+				},
+				err => next(err)
+			);
 		});
 		
 		passport.use(strategy);
+	}
+	
+	/**
+	 * Login user using password. Returns Principal
+	 * @param username
+	 * @param password
+	 * @return {Promise<{message, token}>}
+	 */
+	function login(username, password) {
+		log.trace1(init, arguments);
 		
-		deps.server.post(
-			API_PREFIX + '/login',
-			`Login user`,
-			{
-				body: {
-					username: V.string().required(),
-					password: V.string().required()
-				}
-			},
-			(req) => {
-				const user = getUserByUsername(req.data.username);
-				if (!user || user.password !== req.data.password) {
-					log.warn(`Failed login using: ${JSON.stringify(req.data)}`);
-					throw {
-						message: 'Invalid username or password',
-						code: 401
-					};
-				}
-				
-				log.info(`User ${user.username} has logged in`);
-				const payload = Object.assign({}, new JwtPayload(req.data.username));
-				const token = libJwt.sign(payload, options.secret, {
-					issuer: options.token_issuer,
-				});
-				return {
-					message: 'Authenticated',
-					principal: {
-						token,
-						user: lodash.omit(user, ['password'])
-					}
+		return deps.userManager.verifyPassword(username, password).then(valid => {
+			if (!valid) {
+				throw {
+					message: 'Invalid username or password',
+					code: 401
 				};
 			}
-		);
+			
+			log.info(`User ${username} has logged in`);
+			const payload = Object.assign({}, new JwtPayload(username));
+			const token = libJwt.sign(payload, options.secret, {
+				issuer: options.token_issuer,
+			});
+			
+			return {
+				message: 'Authenticated',
+				token
+			};
+		});
 	}
 }
 
@@ -103,5 +109,6 @@ class JwtPayload {
 // *********************************************************************************************************************
 
 module.exports = {
-	AuthManager
+	AuthManager,
+	JwtPayload
 };

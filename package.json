@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/panta82/issue-tracker#readme",
   "dependencies": {
+    "bcrypt": "^1.0.3",
     "body-parser": "^1.18.2",
     "commander": "^2.15.0",
     "cors": "^2.8.4",

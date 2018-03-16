@@ -166,6 +166,7 @@ function Logger(options) {
 			fn = 'anonymous';
 		}
 		
+		args = args || [];
 		let argsStr = '('
 			+ Array.prototype
 				.map.call(args, inspectCompact)

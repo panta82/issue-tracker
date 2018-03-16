@@ -3,10 +3,13 @@ const libREPL = require('repl');
 const lodash = require('lodash');
 const mongoose = require('mongoose');
 
-const validation = require('./lib/validation');
 const {API_PREFIX} = require('./entities/consts');
+
 const {Logger} = require('./services/logger');
 const {Server} = require('./services/server');
+const {UserManager} = require('./services/user_manager');
+const {AuthManager} = require('./services/auth_manager');
+
 const {createUserModel} = require('./entities/users');
 
 const authController = require('./web/auth_controller');
@@ -24,6 +27,11 @@ class AppSettings {
 		 * @type {LoggerOptions}
 		 */
 		this.Logger = {};
+		
+		/**
+		 * @type {AuthManagerOptions}
+		 */
+		this.Auth = {};
 		
 		/**
 		 * @type {ServerOptions}
@@ -65,27 +73,26 @@ function App(settings, env) {
 	 * Create all models and services and attach them to app / service container. This is called during creation.
 	 */
 	function initContainer() {
-		/** @type {Root} */
-		thisApp.V = thisApp.validation = validation;
+		/** @type AppSettings */
+		thisApp.settings = settings;
 		
-		/**
-		 * @type {Logger}
-		 */
+		/** @type Environment */
+		thisApp.env = env;
+		
+		/** @type {Logger} */
 		thisApp.logger = new Logger(settings.Logger);
 		
-		/**
-		 * @type {Mongoose|*}
-		 */
+		/** @type {Mongoose|*} */
 		thisApp.mongoose = new mongoose.Mongoose();
 		
-		/**
-		 * @type {function(new:User)|Model}
-		 */
+		// Models
+		
+		/** @type {function(new:User)|Model} */
 		thisApp.User = createUserModel(thisApp.mongoose);
 		
-		/**
-		 * @type {Server}
-		 */
+		// Services
+		
+		/** @type {Server} */
 		thisApp.server = new Server({
 			...settings.Server,
 			api_docs: {
@@ -96,7 +103,14 @@ function App(settings, env) {
 			}
 		}, thisApp);
 		
-		// Initialize controllers
+		/** @type UserManager */
+		thisApp.userManager = new UserManager(settings.UserManager, thisApp);
+		
+		/** @type AuthManager */
+		thisApp.auth = new AuthManager(settings.Auth, thisApp);
+		thisApp.auth.init();
+		
+		// Controllers
 		
 		authController(thisApp);
 	}
