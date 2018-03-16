@@ -6,8 +6,8 @@ const lodash = require('lodash');
 const libYaml = require('js-yaml');
 const commander = require('commander');
 
-const {LOGGER_LEVEL_VALUES} = require('./services/logger');
-const {DEFAULT_PORT} = require('./services/server');
+const {LOGGER_LEVEL_VALUES} = require('./lib/logger');
+const {DEFAULT_PORT} = require('./lib/server');
 
 const BASE_NAME = 'settings';
 const ROOT_PATH = libPath.resolve(__dirname, '../');

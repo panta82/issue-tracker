@@ -1,7 +1,7 @@
 const libWinston = require('winston');
 const lodash = require('lodash');
 
-const {reverseHash, inspectCompact} = require("../lib/tools");
+const {reverseHash, inspectCompact} = require("./tools");
 
 const LOGGER_LEVELS = {
 	error: 'error',

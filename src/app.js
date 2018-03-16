@@ -5,8 +5,8 @@ const mongoose = require('mongoose');
 
 const {API_PREFIX} = require('./entities/consts');
 
-const {Logger} = require('./services/logger');
-const {Server} = require('./services/server');
+const {Logger} = require('./lib/logger');
+const {Server} = require('./lib/server');
 const {UserManager} = require('./services/user_manager');
 const {AuthManager} = require('./services/auth_manager');
 
@@ -23,19 +23,16 @@ class AppSettings {
 		 */
 		this.repl = false;
 		
-		/**
-		 * @type {LoggerOptions}
-		 */
+		/** @type {LoggerOptions} */
 		this.Logger = {};
 		
-		/**
-		 * @type {AuthManagerOptions}
-		 */
+		/** @type {AuthManagerOptions} */
 		this.Auth = {};
 		
-		/**
-		 * @type {ServerOptions}
-		 */
+		/** @type {UserManagerOptions} */
+		this.UserManager = {};
+		
+		/** @type {ServerOptions} */
 		this.Server = {};
 		
 		/**
@@ -62,12 +59,26 @@ function App(settings, env) {
 	
 	settings = new AppSettings(settings);
 	
+	/** @type {Model[]} */
+	thisApp.models = [];
+	
 	initContainer();
 	
 	Object.assign(this, /** @lends App.prototype */ {
 		start,
-		stop
+		stop,
+		ensureAllIndexes
 	});
+	
+	/**
+	 * Utility to register a model inline
+	 * @param model
+	 * @return {Model}
+	 */
+	function registerModel(model) {
+		thisApp.models.push(model);
+		return model;
+	}
 	
 	/**
 	 * Create all models and services and attach them to app / service container. This is called during creation.
@@ -88,7 +99,7 @@ function App(settings, env) {
 		// Models
 		
 		/** @type {function(new:User)|Model} */
-		thisApp.User = createUserModel(thisApp.mongoose);
+		thisApp.User = registerModel(createUserModel(thisApp.mongoose));
 		
 		// Services
 		
@@ -143,6 +154,8 @@ function App(settings, env) {
 				// Enter REPL
 				const repl = libREPL.start('REPL> ');
 				repl.context.app = thisApp;
+				repl.context.$l = console.log;
+				repl.context.$e = thisApp.logger.errorHandler;
 				repl.on('exit', () => {
 					thisApp.stop(`REPL exit`);
 				})
@@ -166,6 +179,28 @@ function App(settings, env) {
 			.then(() => {
 				thisApp.logger.info(`App has been stopped`);
 			});
+	}
+	
+	/**
+	 * Ensure indexes for all registered models. This could cause performance issues in production, use carefully
+	 * @param [index]
+	 */
+	function ensureAllIndexes(index = 0) {
+		if (index === 0) {
+			thisApp.logger.info(`Ensuring indexes on ${thisApp.models.length} models`);
+		}
+		
+		if (index >= thisApp.models.length) {
+			thisApp.logger.info(`Model indexing done`);
+			return;
+		}
+		
+		const model = thisApp.models[index];
+		thisApp.logger.info(`Ensuring indexes for ${model.modelName}...`);
+		
+		return model.ensureIndexes().then(() => {
+			return ensureAllIndexes(index + 1);
+		});
 	}
 }
 

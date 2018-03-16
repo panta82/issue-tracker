@@ -20,7 +20,7 @@ function authController(app) {
 			}
 		},
 		req => {
-			return 'Logged in';
+			return app.auth.login(req.data.username, req.data.password);
 		}
 	);
 }

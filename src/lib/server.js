@@ -387,9 +387,12 @@ function createSwaggerDocument(endpoints, apiDocOptions) {
 			description: apiDocOptions.description,
 		},
 		schemes: apiDocOptions.schemes,
-		basePath: apiDocOptions.base_path,
 		paths: {},
 	};
+	
+	if (apiDocOptions.base_path) {
+		result.basePath = apiDocOptions.base_path;
+	}
 	
 	endpoints.forEach(endpoint => {
 		const doc = {

@@ -2,8 +2,10 @@ const expect = require('chai').expect;
 const {Mongoose} = require('mongoose');
 
 const libSettings = require('../src/settings');
+const {Environment, NODE_ENVS} = require('../src/environment');
 
 let mongoose = null;
+let environment = null;
 let settings = null;
 
 /**
@@ -15,7 +17,15 @@ function getTestDatabase() {
 		return mongoose;
 	}
 	
-	settings = settings || libSettings.loadSettingsSync('test');
+	if (!environment) {
+		environment = new Environment();
+		environment.description = 'test description';
+		environment.name = 'test name';
+		environment.version = '1.2.3';
+		environment.argv = ['node', 'app-name'];
+		environment.node_env = NODE_ENVS.test;
+	}
+	settings = settings || libSettings.loadSettingsSync(environment);
 	mongoose = new Mongoose();
 	
 	// We will not wait for this to end or handle errors.

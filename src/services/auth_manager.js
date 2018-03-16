@@ -2,7 +2,6 @@ const lodash = require("lodash");
 const passport = require('passport');
 const passportJwt = require('passport-jwt');
 const libJwt = require('jsonwebtoken');
-const Joi = require('joi');
 
 class AuthManagerOptions {
 	constructor(source) {
@@ -84,11 +83,12 @@ function AuthManager(options, deps) {
 				};
 			}
 			
-			log.info(`User ${username} has logged in`);
 			const payload = Object.assign({}, new JwtPayload(username));
 			const token = libJwt.sign(payload, options.secret, {
 				issuer: options.token_issuer,
 			});
+			
+			log.info(`User ${username} has logged in. Issued token: ${token}`);
 			
 			return {
 				message: 'Authenticated',
