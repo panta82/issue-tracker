@@ -31,6 +31,12 @@ class LoggerOptions {
 		this.level = LOGGER_LEVELS.info;
 		
 		/**
+		 * Enable console transport
+		 * @type {boolean}
+		 */
+		this.console = true;
+		
+		/**
 		 * Prefix to use for each logged message
 		 */
 		this.prefix = '';
@@ -68,16 +74,21 @@ function Logger(options) {
 	
 	options = new LoggerOptions(options);
 	
-	const _logger = new libWinston.Logger({
-		transports: [
+	const winstonOptions = {
+		transports: []
+	};
+	if (options.console) {
+		winstonOptions.transports.push(
 			new libWinston.transports.Console({
 				level: LOGGER_LEVELS[options.level] || options.level,
 				handleExceptions: options.handle_exceptions,
 				colorize: true,
 				timestamp: true
 			})
-		]
-	});
+		);
+	}
+	
+	const _logger = new libWinston.Logger(winstonOptions);
 	
 	Object.assign(thisLogger, /** @lends Logger.prototype*/ {
 		log,

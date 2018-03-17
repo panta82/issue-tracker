@@ -9,7 +9,7 @@ describe('users', () => {
 	after(closeTestDatabase);
 	beforeEach(resetTestDatabase);
 	
-	describe('user model', () => {
+	describe('model', () => {
 		it('validates that username is required', (done) => {
 			const User = libUsers.createUserModel(getTestDatabase());
 			

@@ -1,4 +1,4 @@
-const lodash = require("lodash");
+const lodash = require('lodash');
 const bcrypt = require('bcrypt');
 
 const CustomError = require('../entities/errors').CustomError;

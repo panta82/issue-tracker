@@ -81,6 +81,7 @@ const issueValidators = {
 
 module.exports = {
 	ISSUE,
+	ISSUE_STATUSES,
 	ISSUE_TITLE_MAX_LENGTH,
 	
 	issueSchema,

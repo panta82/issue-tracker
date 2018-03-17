@@ -4,6 +4,11 @@ const {Mongoose} = require('mongoose');
 const libSettings = require('../src/settings');
 const {Environment, NODE_ENVS} = require('../src/environment');
 
+const {Logger} = require('../src/lib/logger');
+const {createUserModel} = require('../src/entities/users');
+const {createIssueModel} = require('../src/entities/issues');
+const {createCommentModel} = require('../src/entities/comments');
+
 let mongoose = null;
 let environment = null;
 let settings = null;
@@ -97,6 +102,31 @@ function resetTestDatabase() {
 }
 
 /**
+ * Create a test container with some standard services
+ * @return {App}
+ */
+function getTestApp() {
+	const mongoose = getTestDatabase();
+	const testApp = {
+		settings,
+		environment,
+		mongoose,
+		
+		/** @type {function(new:User)|Model<User>} */
+		User: createUserModel(mongoose),
+	
+		/** @type {function(new:Issue)|Model<Issue>} */
+		Issue: createIssueModel(mongoose),
+	
+		/** @type {function(new:Comment)|Model<Comment>} */
+		Comment: createCommentModel(mongoose),
+		
+		logger: new Logger({console: false})
+	};
+	return testApp;
+}
+
+/**
  * Generic test that a field on a model is tested for required-ness
  * @param Model
  * @param field
@@ -119,6 +149,8 @@ module.exports = {
 	prepareTestDatabase,
 	resetTestDatabase,
 	closeTestDatabase,
+	
+	getTestApp,
 	
 	testModelValidationRequired
 };
