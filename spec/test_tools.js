@@ -9,12 +9,28 @@ let environment = null;
 let settings = null;
 
 /**
- * Create a mongoose connected to test database or returns one, if already exists.
- * @return {Mongoose}
+ * Return previously created test database. Throws if it hasn't been created yet.
+ * @returns {Mongoose|mongoose}
  */
 function getTestDatabase() {
+	if (!mongoose) {
+		throw new Error(`Test database not created`);
+	}
+	
+	if (mongoose.connection.readyState !== 1) {
+		throw new Error('Test database not ready');
+	}
+	
+	return mongoose;
+}
+
+/**
+ * Configures a test instance of mongoose and connects to the test database.
+ * @return {Promise<Mongoose>}
+ */
+function prepareTestDatabase() {
 	if (mongoose) {
-		return mongoose;
+		return Promise.resolve(mongoose);
 	}
 	
 	if (!environment) {
@@ -28,11 +44,15 @@ function getTestDatabase() {
 	settings = settings || libSettings.loadSettingsSync(environment);
 	mongoose = new Mongoose();
 	
-	// We will not wait for this to end or handle errors.
-	// We will sacrifice correctness for simplicity and api ease of use
-	mongoose.connect(settings.Mongo.connection_string);
-	
-	return mongoose;
+	return mongoose.connect(settings.Mongo.connection_string).then(
+		() => {
+			return mongoose;
+		},
+		err => {
+			// Just kill the test
+			throw new Error(`Failed to connect to test database "${settings.Mongo.connection_string}": ${err.message}`);
+		}
+	);
 }
 
 /**
@@ -44,6 +64,36 @@ function closeTestDatabase() {
 		mongoose.disconnect();
 		mongoose = null;
 	}
+}
+
+/**
+ * Clear all data from database.
+ * Notes: This was trickier than it seems. Mongo also has mongoose.connection.db.dropDatabase(),
+ * 	      but that would also clear all the indexes and validations that mongoose has set up.
+ * 	      We also don't have the master list of all the models so that we can clear through that.
+ * 	      This solution is probably the most efficient
+ * 	      (inspiration: https://github.com/elliotf/mocha-mongoose/blob/master/index.js)
+ * @return {*}
+ */
+function resetTestDatabase() {
+	if (!mongoose) {
+		return;
+	}
+	if (!mongoose.connection.db) {
+		throw new Error(`Test database is not ready`);
+	}
+	
+	return mongoose.connection.db.collections()
+		.then(collections => {
+			const promises = [];
+			collections.forEach(collection => {
+				if (collection.collectionName.match(/^system\./)) {
+					return;
+				}
+				promises.push(collection.remove({}, {safe: true}));
+			});
+			return Promise.all(promises);
+		});
 }
 
 /**
@@ -66,6 +116,8 @@ function testModelValidationRequired(Model, field, done) {
 
 module.exports = {
 	getTestDatabase,
+	prepareTestDatabase,
+	resetTestDatabase,
 	closeTestDatabase,
 	
 	testModelValidationRequired

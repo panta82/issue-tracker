@@ -4,6 +4,8 @@ const MODELS = require('./consts').MODELS;
 
 class Issue extends mongoose.Model {}
 
+const ISSUE_TITLE_MAX_LENGTH = 200;
+
 /** @type Issue */
 const ISSUE = /** @lends Issue.prototype */ {
 	title: 'title',
@@ -17,7 +19,8 @@ const ISSUE = /** @lends Issue.prototype */ {
 const issueSchema = mongoose.Schema({
 	[ISSUE.title]: {
 		type: String,
-		required: true
+		required: true,
+		maxlength: ISSUE_TITLE_MAX_LENGTH
 	},
 	[ISSUE.content]: {
 		type: String
@@ -41,6 +44,7 @@ const issueSchema = mongoose.Schema({
 
 module.exports = {
 	ISSUE,
+	ISSUE_TITLE_MAX_LENGTH,
 	
 	issueSchema,
 	

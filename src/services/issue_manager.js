@@ -23,6 +23,8 @@ function IssueManager(options, deps) {
 	
 	/**
 	 * Create a new user in the system
+	 * @param {User} user
+	 * @param {Issue} issue
 	 */
 	function createIssue(user, issue) {
 		log.trace2(createIssue, arguments);
