@@ -1,7 +1,7 @@
 const Joi = require('joi');
 
 const {mongooseToSwagger, objectIdValidator} = require('../lib/validation');
-const {issueValidator} = require('../entities/issues');
+const {issueValidators} = require('../entities/issues');
 const API_PREFIX = require('../entities/consts').API_PREFIX;
 
 /**
@@ -46,7 +46,7 @@ function issuesController(app) {
 		API_PREFIX + '/issues',
 		`Create a new issue`,
 		{
-			body: issueValidator
+			body: issueValidators.create
 		},
 		req => {
 			return app.issueManager.createIssue(req.user, req.data.body);
@@ -60,7 +60,7 @@ function issuesController(app) {
 			params: {
 				id: objectIdValidator
 			},
-			body: issueValidator,
+			body: issueValidators.update,
 			response: mongooseToSwagger(app.Issue)
 		},
 		req => {
