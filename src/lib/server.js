@@ -355,7 +355,10 @@ function createValidationMiddleware(schema) {
 	return function validator(req, res, next) {
 		const input = {
 			body: req.body,
-			query: lodash.mapKeys(req.query, toSnakeCase),
+			query: lodash.mapKeys(req.query, (_, key) => {
+				// Convert query values to snake case, so you can use REST-standard kebab case keys for url-s
+				return key.replace(/[^a-zA-Z0-9$]/, '_');
+			}),
 			params: req.params
 		};
 		
@@ -377,10 +380,6 @@ function createValidationMiddleware(schema) {
 		return next();
 		
 	};
-}
-
-function toSnakeCase(str) {
-	return str.replace(/[^a-zA-Z0-9$]/, '_');
 }
 
 /**

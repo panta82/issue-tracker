@@ -28,7 +28,8 @@ function IssueManager(options, deps) {
 		getIssueById,
 		listIssues,
 		createIssue,
-		updateIssue
+		updateIssue,
+		deleteIssue
 	});
 	
 	/**
@@ -41,7 +42,9 @@ function IssueManager(options, deps) {
 		
 		return deps.Issue.findById(id)
 			.then(IssueNotFoundError.guard(id))
-			.then(issue => issue.populate(ISSUE.author));
+			.then(issue => {
+				return issue.populate(ISSUE.author);
+			});
 	}
 	
 	/**
@@ -55,7 +58,9 @@ function IssueManager(options, deps) {
 		page = page || 1;
 		pageSize = pageSize || options.default_page_size;
 		
-		return deps.Issue.paginate({}, {
+		return deps.Issue.paginate({
+			[ISSUE.deleted_at]: null
+		}, {
 			page,
 			limit: pageSize,
 			populate: ISSUE.author,
@@ -89,13 +94,29 @@ function IssueManager(options, deps) {
 				return issue.save();
 			});
 	}
+	
+	/**
+	 * Soft-delete issue, by setting deleted_at timestamp
+	 * @param id
+	 */
+	function deleteIssue(id) {
+		log.trace1(deleteIssue, arguments);
+		
+		return getIssueById(id)
+			.then(issue => {
+				if (!issue.deleted_at) {
+					issue.deleted_at = new Date();
+				}
+				return issue.save();
+			});
+	}
 }
 
 // *********************************************************************************************************************
 
 class IssueNotFoundError extends NotFoundError {
 	constructor(id) {
-		super(`Issue "${id}" not found`);
+		super(`Issue "${id}" was not found`);
 	}
 }
 

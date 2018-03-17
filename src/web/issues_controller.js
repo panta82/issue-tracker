@@ -67,6 +67,21 @@ function issuesController(app) {
 			return app.issueManager.updateIssue(req.data.params.id, req.data.body);
 		}
 	);
+	
+	app.server.delete(
+		API_PREFIX + '/issues/:id',
+		`Soft delete issue. The issue will no longer be listed through the resource,
+		although you will still be able to get it directly through id`,
+		{
+			params: {
+				id: objectIdValidator
+			},
+			response: mongooseToSwagger(app.Issue)
+		},
+		req => {
+			return app.issueManager.deleteIssue(req.data.params.id);
+		}
+	);
 }
 
 module.exports = issuesController;
