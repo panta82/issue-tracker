@@ -22,7 +22,7 @@ describe('users', () => {
 			testModelValidationRequired(User, libUsers.USER.password_hash, done);
 		});
 		
-		it('validates that username is unique', (done) => {
+		it('validates that username is unique', () => {
 			const User = libUsers.createUserModel(getTestDatabase());
 			
 			const u1 = new User({
@@ -30,18 +30,37 @@ describe('users', () => {
 				password_hash: 'abc'
 			});
 			
-			u1.save(() => {
-				const u2 = new User({
-					username: 'duplicate',
-					password_hash: 'abc'
-				});
-				
-				return u2.save().then(sinon.stub().throws(), (err) => {
+			return u1.save()
+				.then(() => {
+					const u2 = new User({
+						username: 'duplicate',
+						password_hash: 'abc'
+					});
+					
+					return u2.save();
+				})
+				.then(sinon.stub().throws(), (err) => {
 					expect(err).to.be.instanceOf(Error);
 					expect(err.code).to.equal(11000);
-					done();
 				});
+		});
+		
+		it(`doesn't return password hash by default`, () => {
+			const User = libUsers.createUserModel(getTestDatabase());
+			
+			const u = new User({
+				username: 'test',
+				password_hash: 'abc'
 			});
+			
+			return u.save()
+				.then(() => {
+					return User.findOne({username: 'test'});
+				})
+				.then(/** User */ user => {
+					expect(user.username).to.equal('test');
+					expect(user.password_hash).to.be.undefined;
+				});
 		});
 	});
 });

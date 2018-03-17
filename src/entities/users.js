@@ -6,6 +6,7 @@ class User extends mongoose.Model {}
 
 /** @type User */
 const USER = /** @lends User.prototype */ {
+	_id: '_id',
 	username: 'username',
 	password_hash: 'password_hash',
 	created_at: 'created_at',
@@ -21,6 +22,7 @@ const userSchema = mongoose.Schema({
 	[USER.password_hash]: {
 		type: String,
 		required: true,
+		select: false
 	}
 }, {
 	timestamps: {

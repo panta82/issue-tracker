@@ -1,13 +1,15 @@
 const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate');
 
 const MODELS = require('./consts').MODELS;
 
-class Issue extends mongoose.Model {}
-
 const ISSUE_TITLE_MAX_LENGTH = 200;
+
+class Issue extends mongoose.Model {}
 
 /** @type Issue */
 const ISSUE = /** @lends Issue.prototype */ {
+	_id: '_id',
 	title: 'title',
 	content: 'content',
 	author: 'author',
@@ -39,6 +41,8 @@ const issueSchema = mongoose.Schema({
 		updatedAt: ISSUE.updated_at
 	}
 });
+
+issueSchema.plugin(mongoosePaginate);
 
 // *********************************************************************************************************************
 

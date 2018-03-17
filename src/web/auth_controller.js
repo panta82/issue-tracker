@@ -14,6 +14,13 @@ function authController(app) {
 				username: Joi.string().required(),
 				password: Joi.string().required()
 			},
+			response: {
+				type: 'object',
+				schema: {
+					message: {type: 'string'},
+					token: {type: 'string'},
+				}
+			},
 			auth: false
 		},
 		req => {

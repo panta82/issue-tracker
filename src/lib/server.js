@@ -3,12 +3,12 @@ const libPath = require('path');
 const {promisify} = require('util');
 
 const Joi = require('joi');
+const lodash = require('lodash');
 const libExpress = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const swaggerUi = require('swagger-ui-express');
 const joiToSwagger = require('joi-to-swagger');
-const lodash = require('lodash');
 
 const DEFAULT_PORT = 3000;
 
@@ -303,6 +303,15 @@ function createEndpointFromArgs(method, args) {
 	
 	endpoint.handlers = handlers;
 	
+	// Add query params for pagination
+	if (endpoint.paginated) {
+		endpoint.query = {
+			...endpoint.query,
+			page: Joi.number().greater(0),
+			page_size: Joi.number().greater(0)
+		};
+	}
+	
 	return endpoint;
 }
 
@@ -322,7 +331,8 @@ function makePromiseWrapper(handlerFn) {
 			return next(err);
 		}
 		
-		if (!(promise instanceof Promise)) {
+		// Goofy promise detection. Some modules insist on using Bluebird, so we can't just test for Ctr
+		if (!promise || !promise.then) {
 			return res.send(promise);
 		}
 		
@@ -375,6 +385,7 @@ function toSnakeCase(str) {
 
 /**
  * Create swagger document from api settings and its collected endpoints
+ * TODO: This is incredibly dirty. Refactor into own thing.
  * @param {Endpoint[]} endpoints
  * @param {ServerOptionsApiDocs} apiDocOptions
  */
@@ -405,10 +416,6 @@ function createSwaggerDocument(endpoints, apiDocOptions) {
 			doc.parameters.push({
 				name: key,
 				in: 'path',
-				description: 'TODO',
-				
-				// TODO: Read from validator
-				// required: true
 			});
 		});
 		
@@ -416,10 +423,6 @@ function createSwaggerDocument(endpoints, apiDocOptions) {
 			doc.parameters.push({
 				name: key,
 				in: 'query',
-				description: 'TODO',
-				
-				// TODO: Read from validator
-				// required: true
 			});
 		});
 		
@@ -429,6 +432,33 @@ function createSwaggerDocument(endpoints, apiDocOptions) {
 				name: 'body',
 				schema: joiToSwagger(Joi.object(endpoint.body)).swagger
 			});
+		}
+		
+		if (endpoint.response) {
+			let schema = endpoint.response;
+			if (endpoint.paginated) {
+				// Treat response as an array of paginated objects
+				schema = {
+					type: 'object',
+					properties: {
+						total: {type: 'integer'},
+						page: {type: 'integer'},
+						pages: {type: 'integer'},
+						limit: {type: 'integer'},
+						docs: {
+							type: 'array',
+							items: schema
+						}
+					}
+				};
+			}
+			
+			doc.responses = {
+				'200': {
+					description: 'success',
+					schema
+				}
+			};
 		}
 		
 		if (endpoint.auth) {
@@ -504,6 +534,12 @@ class Endpoint {
 		 * @type {boolean}
 		 */
 		this.auth = true;
+		
+		/**
+		 * Helper to add pagination query params and response wrapping
+		 * @type {boolean}
+		 */
+		this.paginated = false;
 		
 		/**
 		 * List of function handlers for this endpoint. Usually just one

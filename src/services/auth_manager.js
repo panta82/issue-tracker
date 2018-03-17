@@ -67,7 +67,7 @@ function AuthManager(options, deps) {
 	}
 	
 	/**
-	 * Login user using password. Returns Principal
+	 * Login user using password. Returns token
 	 * @param username
 	 * @param password
 	 * @return {Promise<{message, token}>}

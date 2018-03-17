@@ -77,12 +77,15 @@ function UserManager(options, deps) {
 	function verifyPassword(username, password) {
 		log.trace2(verifyPassword, arguments);
 		
-		return getUserByUsername(username).then(user => {
-			if (!user) {
-				return false;
-			}
-			return bcrypt.compare(password, user.password_hash);
-		});
+		return getUserByUsername(username)
+			.select(USER.password_hash)
+			.then(user => {
+				if (!user) {
+					return false;
+				}
+				
+				return bcrypt.compare(password, user.password_hash);
+			});
 	}
 }
 

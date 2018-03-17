@@ -1,9 +1,7 @@
-const libREPL = require('repl');
-
 const lodash = require('lodash');
 const mongoose = require('mongoose');
 
-const {API_PREFIX, APP_COMMANDS} = require('./entities/consts');
+const {APP_COMMANDS} = require('./entities/consts');
 
 const {Logger} = require('./lib/logger');
 const {Server} = require('./lib/server');
@@ -173,14 +171,7 @@ function App(settings, env) {
 				this.logger.info(`App has started`);
 				
 				if (settings.command === APP_COMMANDS.repl) {
-					// Enter REPL
-					const repl = libREPL.start('REPL> ');
-					repl.context.app = thisApp;
-					repl.context.$l = console.log;
-					repl.context.$e = thisApp.logger.errorHandler;
-					repl.on('exit', () => {
-						stop(`REPL exit`);
-					})
+					enterREPL();
 				}
 			});
 	}
@@ -224,6 +215,48 @@ function App(settings, env) {
 		return model.ensureIndexes().then(() => {
 			return ensureAllIndexes(index + 1);
 		});
+	}
+	
+	function enterREPL() {
+		const libREPL = require('repl');
+		
+		const repl = libREPL.start('REPL> ');
+		repl.context.app = thisApp;
+		repl.underscoreAssigned = true;
+		
+		/**
+		 * Logger
+		 */
+		repl.context.$l = console.log;
+		
+		/**
+		 * Error handler
+		 */
+		repl.context.$e = thisApp.logger.errorHandler;
+		
+		/**
+		 * Promise wrapper. You can use it like $p(promise). The result will appear and global "_",
+		 * error as "_error".
+		 * Note: This is a bit goofy, but the best that can be done on short notice.
+		 * TODO: Work out a better REPL wrapper module to handle promises decently. The existing modules suck.
+		 * @param promise
+		 */
+		repl.context.$p = function (promise) {
+			promise.then(
+				res => {
+					repl.context._ = res;
+					repl.emit('line', '_\n');
+				},
+				err => {
+					repl.context._error = err;
+					repl.emit('line', '_error\n');
+				}
+			);
+		};
+		
+		repl.on('exit', () => {
+			stop(`REPL exit`);
+		})
 	}
 }
 

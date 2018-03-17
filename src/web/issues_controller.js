@@ -1,6 +1,7 @@
 const Joi = require('joi');
 
-const ISSUE = require('../entities/issues').ISSUE;
+const {mongooseToSwagger} = require('../lib/tools');
+const libIssues = require('../entities/issues');
 const API_PREFIX = require('../entities/consts').API_PREFIX;
 
 /**
@@ -14,12 +15,27 @@ function issuesController(app) {
 		`Create new issue`,
 		{
 			body: {
-				[ISSUE.title]: Joi.string().max(200),
-				[ISSUE.content]: Joi.string()
+				[libIssues.ISSUE.title]: Joi.string().max(libIssues.ISSUE_TITLE_MAX_LENGTH),
+				[libIssues.ISSUE.content]: Joi.string()
 			}
 		},
 		req => {
 			return app.issueManager.createIssue(req.user, req.data);
+		}
+	);
+	
+	app.server.get(
+		API_PREFIX + '/issues',
+		`List all issues in system (with pagination)`,
+		{
+			response: mongooseToSwagger({
+				_: app.Issue,
+				author: app.User
+			}),
+			paginated: true
+		},
+		req => {
+			return app.issueManager.listIssues(req.data.page, req.data.page_size);
 		}
 	);
 }
