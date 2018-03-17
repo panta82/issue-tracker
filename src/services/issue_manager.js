@@ -10,7 +10,13 @@ class IssueManagerOptions {
 		 * Used for pagination, if nothing is supplied by client
 		 * @type {number}
 		 */
-		this.default_page_size = 20;
+		this.issues_page_size = 20;
+		
+		/**
+		 * Used for pagination, if nothing is supplied by client
+		 * @type {number}
+		 */
+		this.comments_page_size = 20;
 		
 		lodash.merge(this, source);
 	}
@@ -32,7 +38,8 @@ function IssueManager(options, deps) {
 		updateIssue,
 		deleteIssue,
 		
-		addComment
+		addComment,
+		listComments
 	});
 	
 	/**
@@ -59,7 +66,7 @@ function IssueManager(options, deps) {
 		log.trace2(listIssues, arguments);
 		
 		page = page || 1;
-		pageSize = pageSize || options.default_page_size;
+		pageSize = pageSize || options.issues_page_size;
 		
 		return deps.Issue.paginate({
 			[ISSUE.deleted_at]: null
@@ -154,6 +161,34 @@ function IssueManager(options, deps) {
 			})
 			.then(comment => {
 				return comment.populate(COMMENT.author);
+			});
+	}
+	
+	/**
+	 * List comments for a specific issue. The comments are served in reverse chronological order (newest first)
+	 * @param issueId
+	 * @param page
+	 * @param pageSize
+	 */
+	function listComments(issueId, page, pageSize) {
+		log.trace1(listComments, arguments);
+		
+		return validateIssueId(issueId)
+			.then(() => {
+				page = page || 1;
+				pageSize = pageSize || options.comments_page_size;
+				
+				return deps.Comment.paginate({
+					[COMMENT.issue]: issueId,
+					[COMMENT.deleted_at]: null
+				}, {
+					page,
+					limit: pageSize,
+					populate: COMMENT.author,
+					sort: {
+						[COMMENT.created_at]: 'desc',
+					}
+				});
 			});
 	}
 }

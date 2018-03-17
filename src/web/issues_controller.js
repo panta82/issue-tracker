@@ -88,6 +88,24 @@ function issuesController(app) {
 	
 	// *****************************************************************************************************************
 	
+	app.server.get(
+		API_PREFIX + '/issues/:id/comments',
+		`List comments for an issues, with pagination. Comments are sorted from the newest first`,
+		{
+			params: {
+				id: objectIdValidator
+			},
+			response: mongooseToSwagger({
+				_: app.Issue,
+				author: app.User
+			}),
+			paginated: true
+		},
+		req => {
+			return app.issueManager.listComments(req.data.params.id, req.data.query.page, req.data.query.page_size);
+		}
+	);
+	
 	app.server.post(
 		API_PREFIX + '/issues/:id/comments',
 		`Add a comment for a specific issue`,
