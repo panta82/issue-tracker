@@ -3,25 +3,29 @@ const libREPL = require('repl');
 const lodash = require('lodash');
 const mongoose = require('mongoose');
 
-const {API_PREFIX} = require('./entities/consts');
+const {API_PREFIX, APP_COMMANDS} = require('./entities/consts');
 
 const {Logger} = require('./lib/logger');
 const {Server} = require('./lib/server');
 const {UserManager} = require('./services/user_manager');
 const {AuthManager} = require('./services/auth_manager');
+const {IssueManager} = require('./services/issue_manager');
 
 const {createUserModel} = require('./entities/users');
+const {createIssueModel} = require('./entities/issues');
 
 const authController = require('./web/auth_controller');
+const issuesController = require('./web/issues_controller');
+
+const ABORT_SIGNAL = 'ABORT_SIGNAL';
 
 class AppSettings {
 	constructor(source) {
 		/**
-		 * Start application in REPL mode. The operations will be halted. The app will allow user
-		 * to interact with services. Once user exits, the app will shut down.
-		 * @type {boolean}
+		 * One of APP_COMMANDS. Each one of these will trigger a separate special operation and exit.
+		 * @type {string}
 		 */
-		this.repl = false;
+		this.command = null;
 		
 		/** @type {LoggerOptions} */
 		this.Logger = {};
@@ -31,6 +35,9 @@ class AppSettings {
 		
 		/** @type {UserManagerOptions} */
 		this.UserManager = {};
+		
+		/** @type {IssueManagerOptions} */
+		this.IssueManager = {};
 		
 		/** @type {ServerOptions} */
 		this.Server = {};
@@ -101,6 +108,9 @@ function App(settings, env) {
 		/** @type {function(new:User)|Model} */
 		thisApp.User = registerModel(createUserModel(thisApp.mongoose));
 		
+		/** @type {function(new:Issue)|Model} */
+		thisApp.Issue = registerModel(createIssueModel(thisApp.mongoose));
+		
 		// Services
 		
 		/** @type {Server} */
@@ -109,13 +119,15 @@ function App(settings, env) {
 			api_docs: {
 				title: env.name,
 				version: env.version,
-				description: env.description,
-				base_path: API_PREFIX
+				description: env.description
 			}
 		}, thisApp);
 		
 		/** @type UserManager */
 		thisApp.userManager = new UserManager(settings.UserManager, thisApp);
+		
+		/** @type IssueManager */
+		thisApp.issueManager = new IssueManager(settings.IssueManager, thisApp);
 		
 		/** @type AuthManager */
 		thisApp.auth = new AuthManager(settings.Auth, thisApp);
@@ -124,6 +136,7 @@ function App(settings, env) {
 		// Controllers
 		
 		authController(thisApp);
+		issuesController(thisApp);
 	}
 	
 	/**
@@ -142,23 +155,33 @@ function App(settings, env) {
 				autoIndex: false
 			})
 			.then(() => {
+				if (settings.command !== APP_COMMANDS.indexes) {
+					return;
+				}
+				
+				// Execute the indexing command and exit
+				return ensureAllIndexes()
+					.then(stop)
+					.then(() => {
+						throw ABORT_SIGNAL;
+					});
+			})
+			.then(() => {
 				return thisApp.server.start();
 			})
 			.then(() => {
 				this.logger.info(`App has started`);
 				
-				if (!settings.repl) {
-					return;
+				if (settings.command === APP_COMMANDS.repl) {
+					// Enter REPL
+					const repl = libREPL.start('REPL> ');
+					repl.context.app = thisApp;
+					repl.context.$l = console.log;
+					repl.context.$e = thisApp.logger.errorHandler;
+					repl.on('exit', () => {
+						stop(`REPL exit`);
+					})
 				}
-				
-				// Enter REPL
-				const repl = libREPL.start('REPL> ');
-				repl.context.app = thisApp;
-				repl.context.$l = console.log;
-				repl.context.$e = thisApp.logger.errorHandler;
-				repl.on('exit', () => {
-					thisApp.stop(`REPL exit`);
-				})
 			});
 	}
 	
@@ -166,7 +189,7 @@ function App(settings, env) {
 	 * Stop the app. Services are shut down.
 	 * @return {Promise<any>}
 	 */
-	function stop(reason) {
+	function stop(reason = '') {
 		const reasonMsg = reason
 			? `Stopping app due to ${reason}`
 			: `Stopping app`;
@@ -205,5 +228,7 @@ function App(settings, env) {
 }
 
 module.exports = {
-	App
+	ABORT_SIGNAL,
+	
+	App,
 };

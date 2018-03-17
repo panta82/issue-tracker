@@ -1,8 +1,8 @@
 const mongoose = require('mongoose');
 
-class User extends mongoose.Model {}
+const MODELS = require('./consts').MODELS;
 
-const USER_TYPE = 'User';
+class User extends mongoose.Model {}
 
 /** @type User */
 const USER = /** @lends User.prototype */ {
@@ -32,7 +32,6 @@ const userSchema = mongoose.Schema({
 // *********************************************************************************************************************
 
 module.exports = {
-	USER_TYPE,
 	USER,
 	
 	userSchema,
@@ -40,5 +39,5 @@ module.exports = {
 	/**
 	 * @returns {function(new:User)|Model|Schema}
 	 */
-	createUserModel: mongoose => mongoose.model(USER_TYPE, userSchema)
+	createUserModel: mongoose => mongoose.model(MODELS.User, userSchema)
 };

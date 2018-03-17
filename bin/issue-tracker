@@ -2,7 +2,7 @@
 
 const signals = require('enumconsts').signals;
 
-const {App} = require('../src/app');
+const {App, ABORT_SIGNAL} = require('../src/app');
 const {loadSettingsSync} = require('../src/settings');
 const {Environment} = require('../src/environment');
 
@@ -19,6 +19,11 @@ app.start().then(
 		});
 	},
 	err => {
+		if (err === ABORT_SIGNAL) {
+			// Program was aborted during init. Silent exit.
+			return;
+		}
+		
 		console.error(`FATAL ERROR DURING INITIALIZATION`);
 		console.error(err);
 		process.exit(1);

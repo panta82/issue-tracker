@@ -202,7 +202,7 @@ function Server(options, deps) {
 	 */
 	function start() {
 		if (_server) {
-			throw new Error(`Server is already running`);
+			return Promise.resolve();
 		}
 		
 		_log.info(`Starting server...`);
@@ -244,7 +244,7 @@ function Server(options, deps) {
 		_log.info(`Stopping server...`);
 		
 		if (!_server) {
-			throw new Error(`Server is not running`);
+			return Promise.resolve();
 		}
 		
 		const close = promisify(_server.close.bind(_server));
@@ -431,6 +431,15 @@ function createSwaggerDocument(endpoints, apiDocOptions) {
 			});
 		}
 		
+		if (endpoint.auth) {
+			doc.parameters.push({
+				in: 'header',
+				name: 'Authorization',
+				description: 'Authorization header',
+				required: true,
+				type: 'string'
+			});
+		}
 		
 		// Replace express-like path placeholders with swagger style. Eg. /:id/ to /{id}/
 		// TODO: This won't work for regex paths, revisit if it becomes a problem
@@ -447,13 +456,59 @@ function createSwaggerDocument(endpoints, apiDocOptions) {
 
 class Endpoint {
 	constructor(source) {
+		/**
+		 * Method to use for endpoint (get/post/put...)
+		 * @type {string}
+		 */
 		this.method = null;
+		
+		/**
+		 * Route path with express-like placeholders. Eg. /api/v1/users/:id/image
+		 * @type {string}
+		 */
 		this.path = null;
+		
+		/**
+		 * Textual description of endpoint
+		 * @type {string}
+		 */
 		this.description = null;
+		
+		/**
+		 * Joi object schema for URL params. They should match placeholders in path
+		 * @type {Schema|object}
+		 */
 		this.params = null;
+		
+		/**
+		 * Joi object schema for query string. Actual values will be converted to snake case
+		 * @type {Schema|object}
+		 */
 		this.query = null;
+		
+		/**
+		 * Joi object schema for request body
+		 * @type {Schema|object}
+		 */
 		this.body = null;
+		
+		/**
+		 * Joi object schema for response
+		 * TODO
+		 * @type {Schema|object}
+		 */
 		this.response = null;
+		
+		/**
+		 * Whether this endpoint will require authorization header.
+		 * @type {boolean}
+		 */
+		this.auth = true;
+		
+		/**
+		 * List of function handlers for this endpoint. Usually just one
+		 * @type {Array}
+		 */
 		this.handlers = [];
 		
 		lodash.assign(this, source);

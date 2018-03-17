@@ -7,6 +7,7 @@ const libYaml = require('js-yaml');
 const commander = require('commander');
 
 const {LOGGER_LEVEL_VALUES} = require('./lib/logger');
+const {APP_COMMANDS} = require('./entities/consts');
 const {DEFAULT_PORT} = require('./lib/server');
 
 const BASE_NAME = 'settings';
@@ -44,9 +45,12 @@ function loadSettingsFromFileSync(target, filename, mandatory = true) {
  * @param {Environment} env
  */
 function loadSettingsFromCommandLine(target, env) {
+	let command = null;
 	const args = commander
 		.version(env.version)
 		.description(env.description)
+		
+		.option('--indexes', 'Ensure indexes for all models and exit')
 		
 		.option('--repl', 'Start a REPL environment')
 		
@@ -63,10 +67,15 @@ function loadSettingsFromCommandLine(target, env) {
 		)
 		
 		.option('-p, --port <port>', `Set API port (defaults to ${DEFAULT_PORT})`)
-		
+
 		.parse(env.argv);
 	
-	target.repl = args.repl;
+	if (args.repl) {
+		target.command = APP_COMMANDS.repl;
+	}
+	else if (args.indexes) {
+		target.command = APP_COMMANDS.indexes;
+	}
 	
 	if (args.verbose !== 0 || args.quiet !== 0) {
 		// Load logger verbosity from command line. This will be built upon any value from settings.

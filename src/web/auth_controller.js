@@ -1,7 +1,3 @@
-const lodash = require("lodash");
-const passport = require('passport');
-const passportJwt = require('passport-jwt');
-const libJwt = require('jsonwebtoken');
 const Joi = require('joi');
 
 const API_PREFIX = require('../entities/consts').API_PREFIX;
@@ -17,7 +13,8 @@ function authController(app) {
 			body: {
 				username: Joi.string().required(),
 				password: Joi.string().required()
-			}
+			},
+			auth: false
 		},
 		req => {
 			return app.auth.login(req.data.username, req.data.password);
