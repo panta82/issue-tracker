@@ -2,7 +2,8 @@ const API_PREFIX  = '/api/v1';
 
 const MODELS = {
 	User: 'User',
-	Issue: 'Issue'
+	Issue: 'Issue',
+	Comment: 'Comment',
 };
 
 const APP_COMMANDS = {

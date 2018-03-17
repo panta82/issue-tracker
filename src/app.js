@@ -11,6 +11,7 @@ const {IssueManager} = require('./services/issue_manager');
 
 const {createUserModel} = require('./entities/users');
 const {createIssueModel} = require('./entities/issues');
+const {createCommentModel} = require('./entities/comments');
 
 const authController = require('./web/auth_controller');
 const issuesController = require('./web/issues_controller');
@@ -108,6 +109,9 @@ function App(settings, env) {
 		
 		/** @type {function(new:Issue)|Model<Issue>} */
 		thisApp.Issue = registerModel(createIssueModel(thisApp.mongoose));
+		
+		/** @type {function(new:Comment)|Model<Comment>} */
+		thisApp.Comment = registerModel(createCommentModel(thisApp.mongoose));
 		
 		// Services
 		

@@ -1,14 +1,16 @@
 class CustomError extends Error {
-	constructor(error) {
+	constructor(error, code = 500) {
 		super(error);
 		this.message = error.message || String(error);
 		this.type = (this.constructor && this.constructor.name) || 'CustomError';
-		this.code = 500;
+		this.code = code || 500;
 		if (error.stack) {
 			this.stack = error.stack;
 		}
 	}
 }
+
+// *********************************************************************************************************************
 
 class NotFoundError extends CustomError {
 	constructor(message = 'Not found') {
@@ -18,7 +20,7 @@ class NotFoundError extends CustomError {
 }
 
 /**
- * Create a guard you can use to easily add not found to promise chains.
+ * Create a guard you can use to easily add NotFound check to promise chains.
  * Example: find(id).then(NotFoundError.guard(id))
  * @param args Arguments to pass along to error constructor
  * @return {Function}
@@ -32,6 +34,8 @@ NotFoundError.guard = function (...args) {
 		return val;
 	};
 };
+
+// *********************************************************************************************************************
 
 module.exports = {
 	CustomError,

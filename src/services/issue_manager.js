@@ -1,7 +1,8 @@
 const lodash = require("lodash");
 
-const NotFoundError = require('../entities/errors').NotFoundError;
+const {CustomError, NotFoundError} = require('../entities/errors');
 const ISSUE = require('../entities/issues').ISSUE;
+const COMMENT = require('../entities/comments').COMMENT;
 
 class IssueManagerOptions {
 	constructor(source) {
@@ -29,7 +30,9 @@ function IssueManager(options, deps) {
 		listIssues,
 		createIssue,
 		updateIssue,
-		deleteIssue
+		deleteIssue,
+		
+		addComment
 	});
 	
 	/**
@@ -110,9 +113,58 @@ function IssueManager(options, deps) {
 				return issue.save();
 			});
 	}
+	
+	/**
+	 * Validates that issue exists and is not soft-deleted. Used to allow/disallow operations against issues.
+	 * @param issueId
+	 */
+	function validateIssueId(issueId) {
+		log.trace2(validateIssueId, arguments);
+		
+		return deps.Issue.findById(issueId)
+			.select(ISSUE.deleted_at)
+			.then(IssueNotFoundError.guard(issueId))
+			.then(issue => {
+				if (issue.deleted_at) {
+					throw new IssueManagerError(`Issue ${issueId} has been deleted`, 400);
+				}
+				
+				return true;
+			});
+	}
+	
+	/**
+	 * Add comment to an issue
+	 * @param {User} user
+	 * @param {string} issueId
+	 * @param {Comment} payload
+	 */
+	function addComment(user, issueId, payload) {
+		log.trace1(addComment, arguments);
+		
+		return validateIssueId(issueId)
+			.then(() => {
+				const comment = new deps.Comment({
+					...payload,
+					[COMMENT.issue]: issueId,
+					[COMMENT.author]: user._id,
+				});
+				
+				return comment.save();
+			})
+			.then(comment => {
+				return comment.populate(COMMENT.author);
+			});
+	}
 }
 
 // *********************************************************************************************************************
+
+class IssueManagerError extends CustomError {
+	constructor(message, code) {
+		super(message, code);
+	}
+}
 
 class IssueNotFoundError extends NotFoundError {
 	constructor(id) {

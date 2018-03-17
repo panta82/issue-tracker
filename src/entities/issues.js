@@ -58,22 +58,22 @@ issueSchema.plugin(mongoosePaginate);
 
 // *********************************************************************************************************************
 
-const fieldRules = {
-	title: () => Joi.string().max(ISSUE_TITLE_MAX_LENGTH),
-	content: () => Joi.string(),
-	status: () => Joi.string().valid(Object.keys(ISSUE_STATUSES)),
+const issueFields = {
+	title: Joi.string().max(ISSUE_TITLE_MAX_LENGTH),
+	content: Joi.string(),
+	status: Joi.string().valid(Object.keys(ISSUE_STATUSES)),
 };
 
 const issueValidators = {
 	update: {
-		[ISSUE.title]: fieldRules.title(),
-		[ISSUE.content]: fieldRules.content(),
-		[ISSUE.status]: fieldRules.status(),
+		[ISSUE.title]: issueFields.title,
+		[ISSUE.content]: issueFields.content,
+		[ISSUE.status]: issueFields.status,
 	},
 	create: {
-		[ISSUE.title]: fieldRules.title().required(),
-		[ISSUE.content]: fieldRules.content().default(''),
-		[ISSUE.status]: fieldRules.status().required(),
+		[ISSUE.title]: issueFields.title.required(),
+		[ISSUE.content]: issueFields.content.default(''),
+		[ISSUE.status]: issueFields.status.required(),
 	}
 };
 

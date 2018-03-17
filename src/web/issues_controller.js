@@ -2,6 +2,7 @@ const Joi = require('joi');
 
 const {mongooseToSwagger, objectIdValidator} = require('../lib/validation');
 const {issueValidators} = require('../entities/issues');
+const {commentValidator} = require('../entities/comments');
 const API_PREFIX = require('../entities/consts').API_PREFIX;
 
 /**
@@ -9,6 +10,8 @@ const API_PREFIX = require('../entities/consts').API_PREFIX;
  */
 function issuesController(app) {
 	app.server.use(API_PREFIX + '/issues', app.auth.middleware);
+	
+	// *****************************************************************************************************************
 	
 	app.server.get(
 		API_PREFIX + '/issues',
@@ -80,6 +83,23 @@ function issuesController(app) {
 		},
 		req => {
 			return app.issueManager.deleteIssue(req.data.params.id);
+		}
+	);
+	
+	// *****************************************************************************************************************
+	
+	app.server.post(
+		API_PREFIX + '/issues/:id/comments',
+		`Add a comment for a specific issue`,
+		{
+			params: {
+				id: objectIdValidator
+			},
+			body: commentValidator,
+			response: mongooseToSwagger(app.Comment)
+		},
+		req => {
+			return app.issueManager.addComment(req.user, req.data.params.id, req.data.body);
 		}
 	);
 }
