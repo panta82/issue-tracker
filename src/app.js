@@ -103,10 +103,10 @@ function App(settings, env) {
 		
 		// Models
 		
-		/** @type {function(new:User)|Model} */
+		/** @type {function(new:User)|Model<User>} */
 		thisApp.User = registerModel(createUserModel(thisApp.mongoose));
 		
-		/** @type {function(new:Issue)|Model} */
+		/** @type {function(new:Issue)|Model<Issue>} */
 		thisApp.Issue = registerModel(createIssueModel(thisApp.mongoose));
 		
 		// Services

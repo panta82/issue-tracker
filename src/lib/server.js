@@ -365,14 +365,14 @@ function createValidationMiddleware(schema) {
 		});
 		
 		if (result.error) {
-			return next(err);
+			return next(result.error);
 		}
 		
-		// Package everything to one level. body/query is implementation detail of API, it shouldn't reach business logic
+		// Package stuff into req.data, using explicit assignments, so intellisense can pick it up
 		req.data = {
-			...result.value.body,
-			...result.value.query,
-			...result.value.params
+			body: result.value.body,
+			query: result.value.query,
+			params: result.value.params
 		};
 		return next();
 		

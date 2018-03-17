@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate');
+const Joi = require('joi');
 
 const MODELS = require('./consts').MODELS;
 
@@ -46,14 +47,23 @@ issueSchema.plugin(mongoosePaginate);
 
 // *********************************************************************************************************************
 
+const issueValidator = {
+	[ISSUE.title]: Joi.string().max(ISSUE_TITLE_MAX_LENGTH),
+	[ISSUE.content]: Joi.string()
+};
+
+// *********************************************************************************************************************
+
 module.exports = {
 	ISSUE,
 	ISSUE_TITLE_MAX_LENGTH,
 	
 	issueSchema,
 	
+	issueValidator,
+	
 	/**
-	 * @returns {function(new:Issue)|Model|Schema}
+	 * @returns {function(new:Issue)|Model<Issue>}
 	 */
 	createIssueModel: mongoose => mongoose.model(MODELS.Issue, issueSchema)
 };
