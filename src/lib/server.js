@@ -523,7 +523,6 @@ class Endpoint {
 		
 		/**
 		 * Joi object schema for response
-		 * TODO
 		 * @type {Schema|object}
 		 */
 		this.response = null;
