@@ -5,7 +5,7 @@ const {APP_COMMANDS} = require('./entities/consts');
 
 const {Logger} = require('./lib/logger');
 const {Server} = require('./lib/server');
-const {FileUtility} = require('./lib/file_utility');
+const {FileUtility} = require('./lib/files');
 const {UserManager} = require('./services/user_manager');
 const {AuthManager} = require('./services/auth_manager');
 const {IssueManager} = require('./services/issue_manager');
@@ -19,6 +19,7 @@ const {createDocumentModel} = require('./entities/documents');
 
 const authController = require('./web/auth_controller');
 const issuesController = require('./web/issues_controller');
+const documentsController = require('./web/documents_controller');
 
 const ABORT_SIGNAL = 'ABORT_SIGNAL';
 
@@ -142,6 +143,7 @@ function App(settings, env) {
 		
 		authController(thisApp);
 		issuesController(thisApp);
+		documentsController(thisApp);
 	}
 	
 	/**

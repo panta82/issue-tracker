@@ -4,6 +4,8 @@ const libUtil = require('util');
 const lodash = require('lodash');
 const fsExtra = require('fs-extra');
 
+// *********************************************************************************************************************
+
 class FileUtilityOptions {
 	constructor(source) {
 		lodash.merge(this, source);
@@ -80,6 +82,32 @@ function FileUtility(options, deps) {
 
 // *********************************************************************************************************************
 
+/**
+ * Class that packages all the needed info the execute file download.
+ */
+class FileDownload {
+	constructor(path, filename) {
+		this.path = path;
+		this.filename = filename;
+	}
+	
+	/**
+	 * Send file using express response
+	 * @param res
+	 */
+	send(res) {
+		res.sendFile(this.path, {
+			headers: {
+				'Content-disposition': 'attachment; filename=' + this.filename
+			}
+		});
+	}
+}
+
+// *********************************************************************************************************************
+
 module.exports = {
-	FileUtility
+	FileUtility,
+	
+	FileDownload
 };

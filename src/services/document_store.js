@@ -3,8 +3,9 @@ const libPath = require('path');
 const lodash = require('lodash');
 const moment = require('moment');
 
-const {CustomError} = require('../entities/errors');
+const {CustomError, NotFoundError} = require('../entities/errors');
 const DOCUMENT = require('../entities/documents').DOCUMENT;
+const FileDownload = require('../lib/files').FileDownload;
 
 class DocumentStoreOptions {
 	constructor(source) {
@@ -41,7 +42,8 @@ function DocumentStore(options, deps) {
 	
 	Object.assign(this, /** @lends DocumentStore.prototype */ {
 		uploadDocument,
-		listDocumentsForIssue
+		listDocumentsForIssue,
+		prepareDocumentDownload
 	});
 	
 	/**
@@ -148,7 +150,7 @@ function DocumentStore(options, deps) {
 	 * @param pageSize
 	 */
 	function listDocumentsForIssue(issueId, page, pageSize) {
-		log.trace1(listDocumentsForIssue, arguments);
+		log.trace2(listDocumentsForIssue, arguments);
 		
 		return deps.issueManager.validateIssueId(issueId)
 			.then(() => {
@@ -165,6 +167,36 @@ function DocumentStore(options, deps) {
 				});
 			});
 	}
+	
+	/**
+	 * Returns document record. If not found, it will throw error
+	 * @param id
+	 * @return {Promise<Document>}
+	 */
+	function getDocumentById(id) {
+		log.trace2(getDocumentById, arguments);
+		
+		return deps.Document.findById(id)
+			.then(DocumentNotFoundError.guard(id))
+			.then(document => {
+				return document.populate(DOCUMENT.uploader);
+			});
+	}
+	
+	/**
+	 * Prepare file download for a specific document. Caller will be able to initiate download by calling "send"
+	 * @param documentId
+	 * @return Promise<FileDownload>
+	 */
+	function prepareDocumentDownload(documentId) {
+		log.trace1(prepareDocumentDownload, arguments);
+		
+		return getDocumentById(documentId)
+			.then(document => {
+				const download = new FileDownload(getDocumentPath(document), document.filename);
+				return download;
+			});
+	}
 }
 
 // *********************************************************************************************************************
@@ -172,6 +204,12 @@ function DocumentStore(options, deps) {
 class DocumentStoreError extends CustomError {
 	constructor(message, code) {
 		super(message, code);
+	}
+}
+
+class DocumentNotFoundError extends NotFoundError {
+	constructor(id) {
+		super(`Document "${id}" was not found`);
 	}
 }
 

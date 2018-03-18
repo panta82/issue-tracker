@@ -118,40 +118,6 @@ function issuesController(app) {
 			return app.issueManager.addComment(req.user, req.data.params.id, req.data.body);
 		}
 	);
-	
-	// *****************************************************************************************************************
-	
-	app.server.post(
-		API_PREFIX + '/issues/:id/documents',
-		`Upload a document, to be attached with the issue`,
-		{
-			params: {
-				id: objectIdValidator
-			},
-			response: mongooseToSwagger(app.Document)
-		},
-		req => {
-			return app.documentStore.uploadDocument(req.user, req.data.params.id, req);
-		}
-	);
-	
-	app.server.get(
-		API_PREFIX + '/issues/:id/documents',
-		`List documents for an issues, with pagination.`,
-		{
-			params: {
-				id: objectIdValidator
-			},
-			response: mongooseToSwagger({
-				_: app.Document,
-				author: app.User
-			}),
-			paginated: true
-		},
-		req => {
-			return app.documentStore.listDocumentsForIssue(req.data.params.id, req.data.query.page, req.data.query.page_size);
-		}
-	);
 }
 
 module.exports = issuesController;
