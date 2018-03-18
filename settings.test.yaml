@@ -1,2 +1,5 @@
 Mongo:
   connection_string: 'mongodb://localhost/issue_tracker_test'
+
+DocumentStore:
+  directory: '/tmp/document-store-testing'

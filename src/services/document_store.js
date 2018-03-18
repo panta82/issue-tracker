@@ -35,13 +35,14 @@ function DocumentStore(options, deps) {
 	const log = deps.logger.prefixed('DocumentStore');
 	
 	if (!options.directory) {
-		throw new DocumentStoreError(`Mandatory option "DocumentStore.directory" not provided. You must specify where `
+		throw new DocumentStoreError(`Mandatory option "DocumentStore.directory" was not provided. You must specify where `
 			+ `will we store documents. Please do not use /tmp paths, as that will corrupt your local store `
 			+ `when you restart the computer`);
 	}
 	
 	Object.assign(this, /** @lends DocumentStore.prototype */ {
 		uploadDocument,
+		addDocumentFromPath,
 		listDocumentsForIssue,
 		prepareDocumentDownload
 	});

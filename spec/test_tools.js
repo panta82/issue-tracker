@@ -1,10 +1,12 @@
 const expect = require('chai').expect;
 const {Mongoose} = require('mongoose');
+const libPath = require('path');
 
 const libSettings = require('../src/settings');
 const {Environment, NODE_ENVS} = require('../src/environment');
 
 const {Logger} = require('../src/lib/logger');
+const {FileUtility} = require('../src/lib/files');
 const {createUserModel} = require('../src/entities/users');
 const {createIssueModel} = require('../src/entities/issues');
 const {createCommentModel} = require('../src/entities/comments');
@@ -13,6 +15,9 @@ const {createDocumentModel} = require('../src/entities/documents');
 let mongoose = null;
 let environment = null;
 let settings = null;
+
+const MASTER_PATH = libPath.resolve(__dirname, './files/master');
+const STAGING_PATH = libPath.resolve(__dirname, './files/staging');
 
 /**
  * Return previously created test database. Throws if it hasn't been created yet.
@@ -124,9 +129,10 @@ function getTestApp() {
 		
 		/** @type {function(new:Document)|Model<Document>} */
 		Document: createDocumentModel(mongoose),
-		
-		logger: new Logger({console: false})
 	};
+	testApp.logger = new Logger({console: false});
+	testApp.fileUtility = new FileUtility({}, testApp);
+	
 	return testApp;
 }
 
@@ -146,6 +152,17 @@ function testModelValidationRequired(Model, field, done) {
 		expect(err.errors[field].kind).to.equal('required');
 		done();
 	});
+}
+
+/**
+ * Prepare test files on HDD.
+ * @param {App} app
+ */
+function prepareTestFiles(app) {
+	return app.fileUtility.emptyDir(STAGING_PATH)
+		.then(() => {
+			return app.fileUtility.copy(MASTER_PATH, STAGING_PATH);
+		});
 }
 
 /**
@@ -174,12 +191,16 @@ function testRequiredFields(it, modelName, fieldNames) {
 }
 
 module.exports = {
+	STAGING_PATH,
+	
 	getTestDatabase,
 	prepareTestDatabase,
 	resetTestDatabase,
 	closeTestDatabase,
 	
 	getTestApp,
+	
+	prepareTestFiles,
 	
 	testRequiredFields
 };

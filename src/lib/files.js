@@ -27,7 +27,8 @@ function FileUtility(options, deps) {
 		ensureDir,
 		emptyDir,
 		move,
-		remove
+		remove,
+		copy
 	});
 	
 	/**
@@ -77,6 +78,17 @@ function FileUtility(options, deps) {
 		log.trace2(remove, arguments);
 		
 		return fsExtra.remove(path);
+	}
+	
+	/**
+	 * Copy file or directory
+	 * @param fromPath
+	 * @param toPath
+	 */
+	function copy(fromPath, toPath) {
+		log.trace2(copy, arguments);
+		
+		return fsExtra.copy(fromPath, toPath);
 	}
 }
 
