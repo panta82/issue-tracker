@@ -82,6 +82,8 @@ Design a RESTful API for the above scenario.
 
 - Settings are loaded from the app's root directory. Pattern is `settings.<environment>.<local>.yaml`. Environment is determined by `NODE_ENV` environment variable. Local files are kept out of git, you can add your personalized settings there.
 
+- You can test the app using this postman collection: https://www.getpostman.com/collections/4abdbb6d7d4a735f3eea
+
 
 ### Assumptions
 
