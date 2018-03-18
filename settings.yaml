@@ -6,3 +6,6 @@ Logger:
 
 Auth:
   secret: dfghdhrtjhtrj5e3h534h4w5h543h43hwhg4wg3g34tg3q4gegrawgf2g34g43g34qg423qg34gewgsg
+
+DocumentStore:
+  directory: /home/panta/dev/florence/issue-tracker/storage

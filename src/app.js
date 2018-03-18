@@ -5,13 +5,17 @@ const {APP_COMMANDS} = require('./entities/consts');
 
 const {Logger} = require('./lib/logger');
 const {Server} = require('./lib/server');
+const {FileUtility} = require('./lib/file_utility');
 const {UserManager} = require('./services/user_manager');
 const {AuthManager} = require('./services/auth_manager');
 const {IssueManager} = require('./services/issue_manager');
+const {UploadManager} = require('./services/upload_manager');
+const {DocumentStore} = require('./services/document_store');
 
 const {createUserModel} = require('./entities/users');
 const {createIssueModel} = require('./entities/issues');
 const {createCommentModel} = require('./entities/comments');
+const {createDocumentModel} = require('./entities/documents');
 
 const authController = require('./web/auth_controller');
 const issuesController = require('./web/issues_controller');
@@ -26,21 +30,6 @@ class AppSettings {
 		 */
 		this.command = null;
 		
-		/** @type {LoggerOptions} */
-		this.Logger = {};
-		
-		/** @type {AuthManagerOptions} */
-		this.Auth = {};
-		
-		/** @type {UserManagerOptions} */
-		this.UserManager = {};
-		
-		/** @type {IssueManagerOptions} */
-		this.IssueManager = {};
-		
-		/** @type {ServerOptions} */
-		this.Server = {};
-		
 		/**
 		 * Options for mongoose/mongodb driver
 		 */
@@ -50,6 +39,8 @@ class AppSettings {
 			 */
 			connection_string: 'mongodb://localhost/issue_tracker'
 		};
+		
+		// Note: other services will have their settings here, but no need to prefill them.
 		
 		lodash.merge(this, source);
 	}
@@ -99,6 +90,9 @@ function App(settings, env) {
 		/** @type {Logger} */
 		thisApp.logger = new Logger(settings.Logger);
 		
+		/** @type {FileUtility} */
+		thisApp.fileUtility = new FileUtility(settings.FileUtility, thisApp);
+		
 		/** @type {Mongoose|*} */
 		thisApp.mongoose = new mongoose.Mongoose();
 		
@@ -113,6 +107,9 @@ function App(settings, env) {
 		/** @type {function(new:Comment)|Model<Comment>} */
 		thisApp.Comment = registerModel(createCommentModel(thisApp.mongoose));
 		
+		/** @type {function(new:Document)|Model<Document>} */
+		thisApp.Document = registerModel(createDocumentModel(thisApp.mongoose));
+		
 		// Services
 		
 		/** @type {Server} */
@@ -125,11 +122,17 @@ function App(settings, env) {
 			}
 		}, thisApp);
 		
+		/** @type UploadManager */
+		thisApp.uploadManager = new UploadManager(settings.UploadManager, thisApp);
+		
 		/** @type UserManager */
 		thisApp.userManager = new UserManager(settings.UserManager, thisApp);
 		
 		/** @type IssueManager */
 		thisApp.issueManager = new IssueManager(settings.IssueManager, thisApp);
+		
+		/** @type DocumentStore */
+		thisApp.documentStore = new DocumentStore(settings.DocumentStore, thisApp);
 		
 		/** @type AuthManager */
 		thisApp.auth = new AuthManager(settings.Auth, thisApp);

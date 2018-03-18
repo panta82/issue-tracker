@@ -4,6 +4,7 @@ const MODELS = {
 	User: 'User',
 	Issue: 'Issue',
 	Comment: 'Comment',
+	Document: 'Document',
 };
 
 const APP_COMMANDS = {

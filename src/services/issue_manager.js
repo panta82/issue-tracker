@@ -32,6 +32,7 @@ function IssueManager(options, deps) {
 	const log = deps.logger.prefixed('IssueManager');
 
 	Object.assign(this, /** @lends IssueManager.prototype */ {
+		validateIssueId,
 		getIssueById,
 		listIssues,
 		createIssue,
