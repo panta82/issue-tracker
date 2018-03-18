@@ -1,6 +1,8 @@
 const expect = require('chai').expect;
 const sinon = require('sinon');
 
+const lodash = require('lodash');
+
 const {prepareTestDatabase, resetTestDatabase, closeTestDatabase, getTestApp} = require('../test_tools');
 const {IssueManager} = require('../../src/services/issue_manager');
 
@@ -267,8 +269,9 @@ describe('IssueManager', () => {
 							expect(result.limit).to.equal(2);
 							expect(result.page).to.equal(1);
 							expect(result.pages).to.equal(1);
-							expect(result.docs[0].content).to.equal('comment1');
-							expect(result.docs[1].content).to.equal('comment2');
+							const docs = lodash.orderBy(result.docs, 'content');
+							expect(docs[0].content).to.equal('comment1');
+							expect(docs[1].content).to.equal('comment2');
 						});
 				});
 			});

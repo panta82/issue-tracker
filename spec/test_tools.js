@@ -8,6 +8,7 @@ const {Logger} = require('../src/lib/logger');
 const {createUserModel} = require('../src/entities/users');
 const {createIssueModel} = require('../src/entities/issues');
 const {createCommentModel} = require('../src/entities/comments');
+const {createDocumentModel} = require('../src/entities/documents');
 
 let mongoose = null;
 let environment = null;
@@ -121,6 +122,9 @@ function getTestApp() {
 		/** @type {function(new:Comment)|Model<Comment>} */
 		Comment: createCommentModel(mongoose),
 		
+		/** @type {function(new:Document)|Model<Document>} */
+		Document: createDocumentModel(mongoose),
+		
 		logger: new Logger({console: false})
 	};
 	return testApp;
@@ -144,6 +148,31 @@ function testModelValidationRequired(Model, field, done) {
 	});
 }
 
+/**
+ * Generate tests for mongoose "required" fields.
+ * @param it Function from the test scope
+ * @param modelName Eg "Issue"
+ * @param fieldNames List of field names
+ */
+function testRequiredFields(it, modelName, fieldNames) {
+	fieldNames.forEach(fieldName => {
+		it(`validates that ${fieldName} is required`, (done) => {
+			const app = getTestApp();
+			const Model = app[modelName];
+			
+			const m = new Model({
+				[fieldName]: null
+			});
+			
+			m.validate(err => {
+				expect(err.errors[fieldName]).to.exist;
+				expect(err.errors[fieldName].kind).to.equal('required');
+				done();
+			});
+		});
+	});
+}
+
 module.exports = {
 	getTestDatabase,
 	prepareTestDatabase,
@@ -152,5 +181,5 @@ module.exports = {
 	
 	getTestApp,
 	
-	testModelValidationRequired
+	testRequiredFields
 };

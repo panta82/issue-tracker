@@ -1,7 +1,7 @@
 const expect = require('chai').expect;
 const sinon = require('sinon');
 
-const {getTestDatabase, prepareTestDatabase, resetTestDatabase, closeTestDatabase, testModelValidationRequired} = require('../test_tools');
+const {getTestDatabase, prepareTestDatabase, resetTestDatabase, closeTestDatabase, testRequiredFields} = require('../test_tools');
 const libUsers = require('../../src/entities/users');
 const libIssues = require('../../src/entities/issues');
 
@@ -11,6 +11,11 @@ describe('issues', () => {
 	beforeEach(resetTestDatabase);
 	
 	describe('model', () => {
+		testRequiredFields(it, 'Issue', [
+			libIssues.ISSUE.title,
+			libIssues.ISSUE.author
+		]);
+		
 		it('can be created with valid data', () => {
 			const User = libUsers.createUserModel(getTestDatabase());
 			const Issue = libIssues.createIssueModel(getTestDatabase());
@@ -34,19 +39,6 @@ describe('issues', () => {
 					expect(issue.status).to.equal('complete');
 					expect(issue.content).to.equal('My issue');
 				});
-		});
-		
-		it('validates that title is required', (done) => {
-			const Issue = libIssues.createIssueModel(getTestDatabase());
-			
-			testModelValidationRequired(Issue, libIssues.ISSUE.title, done);
-		});
-		
-		it('validates that author is required', (done) => {
-			const User = libUsers.createUserModel(getTestDatabase());
-			const Issue = libIssues.createIssueModel(getTestDatabase());
-			
-			testModelValidationRequired(Issue, libIssues.ISSUE.author, done);
 		});
 		
 		it('validates status', () => {

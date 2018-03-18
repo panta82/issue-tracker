@@ -1,7 +1,7 @@
 const expect = require('chai').expect;
 const sinon = require('sinon');
 
-const {getTestDatabase, prepareTestDatabase, resetTestDatabase, closeTestDatabase, testModelValidationRequired} = require('../test_tools');
+const {getTestDatabase, prepareTestDatabase, resetTestDatabase, closeTestDatabase, testRequiredFields} = require('../test_tools');
 const libUsers = require('../../src/entities/users');
 
 describe('users', () => {
@@ -10,17 +10,10 @@ describe('users', () => {
 	beforeEach(resetTestDatabase);
 	
 	describe('model', () => {
-		it('validates that username is required', (done) => {
-			const User = libUsers.createUserModel(getTestDatabase());
-			
-			testModelValidationRequired(User, libUsers.USER.username, done);
-		});
-		
-		it('validates that password hash is required', (done) => {
-			const User = libUsers.createUserModel(getTestDatabase());
-			
-			testModelValidationRequired(User, libUsers.USER.password_hash, done);
-		});
+		testRequiredFields(it, 'User', [
+			libUsers.USER.username,
+			libUsers.USER.password_hash
+		]);
 		
 		it('validates that username is unique', () => {
 			const User = libUsers.createUserModel(getTestDatabase());
