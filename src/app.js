@@ -168,6 +168,8 @@ function App(settings, env) {
 				autoIndex: false
 			})
 			.then(() => {
+				thisApp.logger.info(`Connected to ${settings.Mongo.connection_string}`);
+				
 				if (settings.command !== APP_COMMANDS.indexes) {
 					return;
 				}
@@ -192,7 +194,7 @@ function App(settings, env) {
 
 				return thisApp.userManager.createUser(settings.add_user.username, settings.add_user.password)
 					.then((user) => {
-						thisApp.logger.info(`User ${user.username} added`);
+						thisApp.logger.info(`User "${user.username}" added (pwd: ${settings.add_user.password})`);
 						return stop();
 					})
 					.then(() => {

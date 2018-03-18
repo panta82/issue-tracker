@@ -24,7 +24,7 @@ function authController(app) {
 			auth: false
 		},
 		req => {
-			return app.auth.login(req.data.username, req.data.password);
+			return app.auth.login(req.data.body.username, req.data.body.password);
 		}
 	);
 }

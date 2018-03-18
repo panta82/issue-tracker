@@ -121,13 +121,13 @@ function loadSettingsSync(env) {
 	
 	// Load base settings, eg. settings.yaml
 	loadSettingsFromFileSync(settings, BASE_NAME + '.yaml');
-		
-	// Load environment based settings, eg. settings.production.yaml
-	loadSettingsFromFileSync(settings, BASE_NAME + '.' + env.node_env + '.yaml', false);
 	
-	// Load optional local settings, eg. settings.local.yaml
+	// Load local settings, eg. settings.local.yaml
 	loadSettingsFromFileSync(settings, BASE_NAME + '.local.yaml', false);
 	
+	// Load environment based settings, eg. settings.production.yaml
+	loadSettingsFromFileSync(settings, BASE_NAME + '.' + env.node_env + '.yaml', false);
+
 	// Load environment-based local settings, eg. settings.test.local.yaml
 	loadSettingsFromFileSync(settings, BASE_NAME + '.' + env.node_env + '.local.yaml', false);
 	
