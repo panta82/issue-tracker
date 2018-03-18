@@ -39,6 +39,50 @@ Design a RESTful API for the above scenario.
 
 ## Implementation
 
+### Setup
+
+1. Install node.js and local instance of mongodb.
+
+2. Clone the repo, install dependencies
+    ```
+    git clone https://github.com/panta82/issue-tracker
+    cd issue-tracker
+    npm install
+    ```
+
+3. Configure your local instance
+    ```
+    cp settings.yaml settings.local.yaml
+    ```
+    Then in settings.local.yaml, configure:
+      - `Auth.secret`, enter some random string
+      - `DocumentStore.directory`, enter path on your local HDD where to store uploaded documents
+
+    You can also optionally configure mongo database, port etc.
+
+4. Create mongo indexes and hooks
+    ```
+    bin/issue-tracker --indexes
+    ```
+
+5. Create your user through CLI (or REPL):
+    ```
+    bin/issue-tracker --add-user admin,hunter2
+    ```
+
+6. Start the app with `npm start` or `bin/issue-tracker`
+
+### Usage
+
+- API docs can be found on /docs endpoint (default: http://localhost:3000/docs/)
+
+- Enter `bin/issue-tracker -h` to see some cli options
+
+- If you run `bin/issue-tracker --repl`, you will enter a customized REPL environment where you can interact with the app (hint: enter `app` and press tab). To deal with promises, wrap them in $p function (`$p(myPromise)`).
+
+- Settings are loaded from the app's root directory. Pattern is `settings.<environment>.<local>.yaml`. Environment is determined by `NODE_ENV` environment variable. Local files are kept out of git, you can add your personalized settings there.
+
+
 ### Assumptions
 
 - This is an internal API for a web-based SPA. It will not serve mobile apps or have 3rd party integrations (OAuth). Frontend is developed by the same or closely related internal team as backend.

@@ -54,6 +54,18 @@ function loadSettingsFromCommandLine(target, env) {
 		
 		.option('--repl', 'Start a REPL environment')
 		
+		.option(
+			'--add-user <username>,<password>',
+			`Register a new user. Provide username and password separated by ","`,
+			(val) => {
+				const parts = val.split(',');
+				return {
+					username: parts[0],
+					password: parts[1]
+				};
+			}
+		)
+		
 		.option('-v, --verbose',
 			'Increase logger verbosity (from INFO to VERBOSE to DEBUG)',
 			(_, total) => total + 1,
@@ -75,6 +87,10 @@ function loadSettingsFromCommandLine(target, env) {
 	}
 	else if (args.indexes) {
 		target.command = APP_COMMANDS.indexes;
+	}
+	else if (args.addUser) {
+		target.command = APP_COMMANDS.add_user;
+		target.add_user = args.addUser;
 	}
 	
 	if (args.verbose !== 0 || args.quiet !== 0) {

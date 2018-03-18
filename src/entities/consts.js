@@ -17,7 +17,12 @@ const APP_COMMANDS = {
 	/**
 	 * Ensure indexes and exit the app
 	 */
-	indexes: 'indexes'
+	indexes: 'indexes',
+	
+	/**
+	 * Add user and exit the app
+	 */
+	add_user: 'add_user'
 };
 
 module.exports = {

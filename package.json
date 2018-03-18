@@ -2,7 +2,7 @@
   "name": "issue-tracker",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "bin/issue-tracker",
   "scripts": {
     "test": "mocha --recursive spec"
   },

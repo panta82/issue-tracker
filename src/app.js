@@ -32,6 +32,12 @@ class AppSettings {
 		this.command = null;
 		
 		/**
+		 * Parameters for add-user command.
+		 * @type {{username, password}}
+		 */
+		this.add_user = null;
+		
+		/**
 		 * Options for mongoose/mongodb driver
 		 */
 		this.Mongo = {
@@ -169,6 +175,26 @@ function App(settings, env) {
 				// Execute the indexing command and exit
 				return ensureAllIndexes()
 					.then(stop)
+					.then(() => {
+						throw ABORT_SIGNAL;
+					});
+			})
+			.then(() => {
+				if (settings.command !== APP_COMMANDS.add_user) {
+					return;
+				}
+				
+				// Execute the add user command and exit
+				
+				if (!settings.add_user || !settings.add_user.password) {
+					throw new Error(`Invalid arguments. You must provide username and password`);
+				}
+
+				return thisApp.userManager.createUser(settings.add_user.username, settings.add_user.password)
+					.then((user) => {
+						thisApp.logger.info(`User ${user.username} added`);
+						return stop();
+					})
 					.then(() => {
 						throw ABORT_SIGNAL;
 					});
